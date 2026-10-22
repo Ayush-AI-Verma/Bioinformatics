@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bioinformatics Tool Finder — powered by Kev</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Bioinformatics Tool Finder</h1>
+  <p class="tagline">Describe your task and data. <a href="https://github.com/jaredpalmer/kev" target="_blank" rel="noopener">Kev</a> picks the tools.</p>
+  <nav>
+    <button class="tab active" data-tab="ask">Ask Kev</button>
+    <button class="tab" data-tab="browse">Browse catalog</button>
+    <button class="tab" data-tab="settings">Settings</button>
+  </nav>
+</header>
+
+<main>
+  <section id="ask" class="panel active">
+    <label for="task">Your task and data</label>
+    <textarea id="task" rows="5" placeholder="e.g. I have paired-end RNA-seq FASTQ files from mouse liver, treated vs control, and want differential expression."></textarea>
+    <div class="examples">
+      Try:
+      <button class="ex">Call SNPs from human whole-genome Illumina reads</button>
+      <button class="ex">Dock a library of natural compounds (SMILES) against a protein PDB</button>
+      <button class="ex">Classify taxa in shotgun metagenomic gut samples</button>
+      <button class="ex">Cluster single-cell RNA-seq and find marker genes</button>
+    </div>
+    <button id="askBtn" class="primary">Find tools</button>
+    <p id="status" class="status"></p>
+    <div id="categories"></div>
+    <ol id="results" class="results"></ol>
+  </section>
+
+  <section id="browse" class="panel">
+    <div class="filters">
+      <input id="search" type="search" placeholder="Search name, description, format…">
+      <select id="catFilter"><option value="">All categories</option></select>
+    </div>
+    <p id="count" class="muted"></p>
+    <div id="grid" class="grid"></div>
+  </section>
+
+  <section id="settings" class="panel">
+    <label for="endpoint">Kev endpoint</label>
+    <input id="endpoint" type="url">
+    <label for="apikey">API key (bearer token — stored only in this browser)</label>
+    <input id="apikey" type="password" autocomplete="off">
+    <button id="saveSettings" class="primary">Save</button>
+    <button id="testEndpoint">Test connection</button>
+    <p id="settingsStatus" class="status"></p>
+    <p class="muted">Default is Kev-27B on Modal. The first request after idle can take ~1 minute while a GPU starts. Any System One endpoint works (Kev local server: <code>http://localhost:8009</code>).</p>
+  </section>
+</main>
+
+<footer>
+  <span id="toolTotal"></span> · Catalog in <a href="tools.json">tools.json</a> · Decisions by Kev (Qwen-based decision model, Apache-2.0)
+</footer>
+<script src="app.js"></script>
+</body>
+</html>
