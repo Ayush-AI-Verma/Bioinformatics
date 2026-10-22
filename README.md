@@ -1,4 +1,8 @@
-# Kitchen Safety — Kev yes/no questions
+# kev-bioinformatics
+
+Experiments with [Kev](https://github.com/jaredpalmer/kev) decision models.
+
+## Example: yes/no questions
 
 A small test of [Kev](https://github.com/jaredpalmer/kev) (Jev-style decision model, Kev-0.8B, served locally on Apple Silicon via MLX) answering 20 yes/no kitchen-safety questions over short scenario texts, via the TypeSafe System One SDK (`Noul` questions, one forward pass each).
 
