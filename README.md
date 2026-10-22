@@ -19,10 +19,10 @@ The default endpoint is <https://ayush-ai-verma--kev27b-api.modal.run>, serving 
 
 Enter an API key in the **Settings** tab. The key is stored only in your browser's `localStorage` and is never committed.
 
-To deploy your own endpoint from the Kev repository (`kev_serve.py` is at `skills/kev-deploy/scripts/kev_serve.py`):
+To deploy your own endpoint, use [`deploy/kev_serve.py`](deploy/kev_serve.py): Kev's Modal deploy script plus an outer CORS layer, which browsers need to call a key-protected endpoint:
 
 ```bash
-KEV_MODEL=jaredpalmer/kev-27b KEV_APP_NAME=kev27b KEV_API_KEY=$(openssl rand -hex 24) modal deploy kev_serve.py
+KEV_MODEL=jaredpalmer/kev-27b KEV_APP_NAME=kev27b KEV_API_KEY=$(openssl rand -hex 24) modal deploy deploy/kev_serve.py
 ```
 
 Any System One endpoint works. To run Kev locally:
