@@ -148,7 +148,7 @@ function toolOption(t) {
 
 async function runSingle(task, signal) {
   setWaiting("Step 1/2: Kev is choosing the relevant categories…");
-  const catCriteria = Object.fromEntries(CATEGORIES.map((c) => [core.slug(c), c]));
+  const catCriteria = Object.fromEntries(CATEGORIES.map((c) => [core.slug(c), core.CATEGORY_HINTS[c] ? `${c}: ${core.CATEGORY_HINTS[c]}` : c]));
   const a1 = await kev(task, { category: { type: "choice", instructions: "Which category of bioinformatics tools does this task mainly need?", criteria: catCriteria } }, signal);
   const picked = core.pickCategories(a1.category.probabilities);
   $("categories").innerHTML = picked.map(([id, p]) => `<span class="chip">${esc(CAT_BY_SLUG[id] || id)} <b>${pct(p)}</b></span>`).join("");
@@ -159,7 +159,7 @@ async function runSingle(task, signal) {
 
 async function runPipeline(task, signal) {
   setWaiting("Step 1/2: Kev is working out which steps this pipeline needs…");
-  const qs = Object.fromEntries(CATEGORIES.map((c) => [core.slug(c), { type: "noul", instructions: `Does this task or pipeline include a step that needs ${c} tools?` }]));
+  const qs = Object.fromEntries(CATEGORIES.map((c) => [core.slug(c), { type: "noul", instructions: `Does this task or pipeline include a step that needs ${c} tools${core.CATEGORY_HINTS[c] ? ` (${core.CATEGORY_HINTS[c]})` : ""}?` }]));
   const a1 = await kev(task, qs, signal);
   const nouls = Object.fromEntries(Object.entries(a1).map(([id, a]) => [id, a.noul]));
   const steps = core.pickPipelineSteps(nouls, CATEGORIES);

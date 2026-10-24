@@ -9,6 +9,7 @@ export const STAGE_ORDER = [
   "Read alignment",
   "Genome assembly",
   "Genome annotation",
+  "Natural products & metabolomics",
   "Variant calling",
   "Population genetics & GWAS",
   "RNA-seq quantification & differential expression",
@@ -25,6 +26,30 @@ export const STAGE_ORDER = [
   "Visualization & genome browsers",
   "Workflow managers",
 ];
+
+export const CATEGORY_HINTS = {
+  "Sequence QC & trimming": "read quality reports, adapter and quality trimming, and filtering of raw FASTQ reads",
+  "Long-read sequencing": "Oxford Nanopore/PacBio basecalling, long-read processing, long-read mapping and polishing",
+  "Read alignment": "mapping short reads to a reference genome or transcriptome (FASTQ to SAM/BAM)",
+  "Genome assembly": "de novo assembly of genomes from reads into contigs and scaffolds, and assembly quality checks",
+  "Genome annotation": "predicting genes, coding sequences and functional labels on an assembled genome",
+  "Natural products & metabolomics": "finding biosynthetic gene clusters (BGCs) that produce secondary metabolites such as antibiotics, grouping BGCs into families, and identifying metabolites from mass-spec metabolomics data",
+  "Variant calling": "detecting SNPs, indels and structural variants from aligned reads, and annotating variants",
+  "Population genetics & GWAS": "genotype QC, population structure, imputation and genome-wide association studies",
+  "RNA-seq quantification & differential expression": "gene/transcript quantification from bulk RNA-seq and differential expression testing",
+  "Single-cell analysis": "single-cell RNA-seq processing, clustering, cell type annotation and marker genes",
+  "Epigenomics (ChIP/ATAC/methylation)": "ChIP-seq/ATAC-seq peak calling, chromatin accessibility and DNA methylation analysis",
+  "Metagenomics & microbiome": "taxonomic profiling, binning and functional profiling of microbial communities, and 16S amplicon analysis",
+  "Sequence search & multiple alignment": "homology search against sequence databases (BLAST-like) and multiple sequence alignment",
+  "Phylogenetics & evolution": "building phylogenetic trees and analyzing molecular evolution and selection",
+  "Protein structure prediction & analysis": "predicting, comparing and analyzing 3D protein structures",
+  "Cheminformatics": "small-molecule handling: descriptors, fingerprints, format conversion and similarity search",
+  "Molecular docking & virtual screening": "docking ligands into protein binding sites and screening compound libraries",
+  "Proteomics & mass spectrometry": "peptide and protein identification and quantification from mass spectrometry data",
+  "File formats & utilities": "general manipulation and conversion of sequence/alignment files (FASTA, FASTQ, SAM/BAM, VCF, BED)",
+  "Visualization & genome browsers": "viewing alignments, genomic tracks and results interactively or in plots",
+  "Workflow managers": "building and running reproducible multi-step analysis pipelines",
+};
 
 const STOPWORDS = new Set([
   "the", "and", "for", "with", "from", "to", "of", "in", "on", "my", "i", "a",

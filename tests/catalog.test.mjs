@@ -1,14 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { safeUrl, STAGE_ORDER } from "../site/core.js";
+import { CATEGORY_HINTS, safeUrl, STAGE_ORDER } from "../site/core.js";
 
 const tools = JSON.parse(readFileSync(new URL("../site/tools.json", import.meta.url), "utf8"));
 const requiredStrings = ["name", "category", "description", "language", "license", "url"];
 
-test("catalog contains 299 tools with unique, non-empty IDs", () => {
+test("catalog contains 317 tools with unique, non-empty IDs", () => {
   assert.ok(Array.isArray(tools));
-  assert.equal(tools.length, 299);
+  assert.equal(tools.length, 317);
   const ids = tools.map((tool) => tool.id);
   assert.ok(ids.every((id) => typeof id === "string" && id.length > 0));
   assert.equal(new Set(ids).size, ids.length);
@@ -32,6 +32,10 @@ test("catalog uses every stage category and no categories outside STAGE_ORDER", 
   const usedCategories = new Set(tools.map((tool) => tool.category));
   for (const category of usedCategories) assert.ok(STAGE_ORDER.includes(category), category);
   assert.deepEqual([...usedCategories].sort(), [...STAGE_ORDER].sort());
+});
+
+test("CATEGORY_HINTS has exactly one entry for each stage category", () => {
+  assert.deepEqual(Object.keys(CATEGORY_HINTS).sort(), [...STAGE_ORDER].sort());
 });
 
 test("every catalog URL is a safe HTTP or HTTPS URL", () => {

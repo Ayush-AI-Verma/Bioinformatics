@@ -1,6 +1,6 @@
 # Bioinformatics Tool Finder
 
-Describe your bioinformatics task and the data you have; Kev (https://github.com/jaredpalmer/kev) ranks tools from a curated catalog of 299 tools across 20 categories: Sequence QC & trimming, Read alignment, Long-read sequencing, Genome assembly, Variant calling, Population genetics & GWAS, RNA-seq quantification & differential expression, Single-cell analysis, Epigenomics (ChIP/ATAC/methylation), Metagenomics & microbiome, Sequence search & multiple alignment, Genome annotation, Phylogenetics & evolution, Protein structure prediction & analysis, Molecular docking & virtual screening, Cheminformatics, Proteomics & mass spectrometry, File formats & utilities, Visualization & genome browsers, and Workflow managers.
+Describe your bioinformatics task and the data you have; Kev (https://github.com/jaredpalmer/kev) ranks tools from a curated catalog of 317 tools across 21 categories: Sequence QC & trimming, Read alignment, Long-read sequencing, Genome assembly, Variant calling, Population genetics & GWAS, RNA-seq quantification & differential expression, Single-cell analysis, Epigenomics (ChIP/ATAC/methylation), Metagenomics & microbiome, Sequence search & multiple alignment, Genome annotation, Natural products & metabolomics, Phylogenetics & evolution, Protein structure prediction & analysis, Molecular docking & virtual screening, Cheminformatics, Proteomics & mass spectrometry, File formats & utilities, Visualization & genome browsers, and Workflow managers.
 
 ## How it works
 

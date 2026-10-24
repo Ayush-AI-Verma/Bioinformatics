@@ -34,7 +34,7 @@ test("exports the catalog and ranking constants", () => {
   assert.equal(PIPELINE_THRESHOLD, 0.5);
   assert.equal(MAX_PIPELINE_STEPS, 6);
   assert.deepEqual(LIMITS, { minTask: 10, maxTask: 4000 });
-  assert.equal(STAGE_ORDER.length, 20);
+  assert.equal(STAGE_ORDER.length, 21);
 });
 
 test("slug lowercases, collapses non-alphanumeric runs, and trims dashes", () => {
@@ -212,6 +212,12 @@ test("keywordSearch lightly stems prefixes and does not match short or partial p
 
   const annotationTool = { name: "annotation", category: "", description: "", inputs: [], outputs: [] };
   assert.deepEqual(keywordSearch("annotate", [annotationTool]), []);
+});
+
+test("keywordSearch ranks antiSMASH in the top three for a BGC query", () => {
+  const tools = JSON.parse(readFileSync(new URL("../site/tools.json", import.meta.url), "utf8"));
+  const results = keywordSearch("biosynthetic gene cluster antibiotic", tools);
+  assert.ok(results.slice(0, 3).some(({ tool }) => tool.id === "antismash"));
 });
 
 test("filterTools supports exact facets and the open-license sentinel", () => {
