@@ -13,51 +13,90 @@
   <nav>
     <button class="tab active" data-tab="ask">Ask Kev</button>
     <button class="tab" data-tab="browse">Browse catalog</button>
+    <button class="tab" data-tab="saved">Saved <span id="favCount" class="pill"></span></button>
     <button class="tab" data-tab="settings">Settings</button>
   </nav>
 </header>
 
 <main>
   <section id="ask" class="panel active">
+    <div class="modes" role="radiogroup" aria-label="Mode">
+      <label class="mode"><input type="radio" name="mode" value="single" checked> One task — rank the best tools</label>
+      <label class="mode"><input type="radio" name="mode" value="pipeline"> Multi-step pipeline — tools for each step</label>
+    </div>
     <label for="task">Your task and data</label>
-    <textarea id="task" rows="5" placeholder="e.g. I have paired-end RNA-seq FASTQ files from mouse liver, treated vs control, and want differential expression."></textarea>
+    <textarea id="task" rows="5" maxlength="4000" placeholder="e.g. I have paired-end RNA-seq FASTQ files from mouse liver, treated vs control, and want differential expression."></textarea>
+    <div class="row between"><span class="muted small">⌘/Ctrl + Enter to run</span><span id="charCount" class="muted small">0 / 4000</span></div>
     <div class="examples">
       Try:
-      <button class="ex">Call SNPs from human whole-genome Illumina reads</button>
-      <button class="ex">Dock a library of natural compounds (SMILES) against a protein PDB</button>
-      <button class="ex">Classify taxa in shotgun metagenomic gut samples</button>
-      <button class="ex">Cluster single-cell RNA-seq and find marker genes</button>
+      <button class="ex" data-mode="single">Call SNPs from human whole-genome Illumina reads</button>
+      <button class="ex" data-mode="single">Dock a library of natural compounds (SMILES) against a protein PDB</button>
+      <button class="ex" data-mode="single">Cluster single-cell RNA-seq and find marker genes</button>
+      <button class="ex" data-mode="pipeline">Pipeline: QC raw Illumina FASTQ, align to GRCh38, call and annotate variants, view them in a genome browser</button>
+      <button class="ex" data-mode="pipeline">Pipeline: assemble a bacterial genome from nanopore reads, annotate genes, build a phylogeny with related strains</button>
     </div>
-    <button id="askBtn" class="primary">Find tools</button>
-    <p id="status" class="status"></p>
+    <div class="row">
+      <button id="askBtn" class="primary">Find tools</button>
+      <button id="cancelBtn" hidden>Cancel</button>
+      <button id="shareBtn" hidden>Copy share link</button>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <div id="banner" class="banner" hidden></div>
     <div id="categories"></div>
-    <ol id="results" class="results"></ol>
+    <details id="refine" class="refine" hidden>
+      <summary>Refine results by data format, license, language, install</summary>
+      <div id="refineFilters" class="facets"></div>
+    </details>
+    <div id="results"></div>
   </section>
 
   <section id="browse" class="panel">
     <div class="filters">
       <input id="search" type="search" placeholder="Search name, description, format…">
-      <select id="catFilter"><option value="">All categories</option></select>
+      <select id="catFilter" aria-label="Category"><option value="">All categories</option></select>
     </div>
+    <div id="browseFilters" class="facets"></div>
     <p id="count" class="muted"></p>
     <div id="grid" class="grid"></div>
   </section>
 
+  <section id="saved" class="panel">
+    <h2>Favorites</h2>
+    <p id="favEmpty" class="muted">Star tools (☆) in results or the catalog to keep them here.</p>
+    <div id="favGrid" class="grid"></div>
+    <div class="row between"><h2>Recent searches</h2><button id="clearHistory">Clear history</button></div>
+    <ul id="historyList" class="history"></ul>
+  </section>
+
   <section id="settings" class="panel">
     <label for="endpoint">Kev endpoint</label>
-    <input id="endpoint" type="url">
+    <input id="endpoint" type="url" spellcheck="false">
     <label for="apikey">API key (bearer token — stored only in this browser)</label>
-    <input id="apikey" type="password" autocomplete="off">
-    <button id="saveSettings" class="primary">Save</button>
-    <button id="testEndpoint">Test connection</button>
-    <p id="settingsStatus" class="status"></p>
-    <p class="muted">Default is Kev-27B on Modal. The first request after idle can take ~1 minute while a GPU starts. Any System One endpoint works (Kev local server: <code>http://localhost:8009</code>).</p>
+    <div class="row nowrap"><input id="apikey" type="password" autocomplete="off" spellcheck="false"><button id="toggleKey" type="button">Show</button></div>
+    <div class="row">
+      <button id="saveSettings" class="primary">Save</button>
+      <button id="testEndpoint">Test connection</button>
+      <button id="resetSettings">Reset to default</button>
+    </div>
+    <p id="settingsStatus" class="status" role="status" aria-live="polite"></p>
+    <p class="muted">Default is Kev-27B on Modal. The first request after idle can take ~1–2 minutes while a GPU starts; the app retries automatically. Any System One endpoint works (Kev local server: <code>http://localhost:8009</code>). If Kev can't be reached, the app falls back to keyword search over the catalog.</p>
   </section>
 </main>
+
+<div id="compareBar" class="compare-bar" hidden>
+  <span id="compareCount"></span>
+  <button id="compareOpen" class="primary">Compare</button>
+  <button id="compareClear">Clear</button>
+</div>
+<dialog id="compareDlg">
+  <div class="row between"><h2>Compare tools</h2><button id="compareClose" aria-label="Close">✕</button></div>
+  <div class="table-wrap"><table id="compareTable"></table></div>
+</dialog>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <footer>
   <span id="toolTotal"></span> · Catalog in <a href="tools.json">tools.json</a> · Decisions by Kev (Qwen-based decision model, Apache-2.0)
 </footer>
-<script src="app.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

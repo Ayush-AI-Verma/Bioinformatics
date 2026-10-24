@@ -4,10 +4,15 @@ Describe your bioinformatics task and the data you have; Kev (https://github.com
 
 ## How it works
 
-1. Kev asks a System One `choice` question across the 20 categories. It selects the highest-probability categories until their cumulative probability reaches 0.8, or it has selected three categories.
-2. Kev asks one `choice` question per selected category, with each tool's name, description, inputs, and outputs as the option text. Each tool score is `P(category) × P(tool | category)`, and the top 10 tools are shown.
+**Single task.** Describe one task to get ranked tools, scored by `P(category) × P(tool | category)`.
 
-The **Browse catalog** tab lets you search the catalog and filter by category.
+**Pipeline.** For a multi-step analysis, Kev answers one yes/no question per category to select up to six steps in typical workflow order. It ranks the top three tools for each step and shows format hand-off hints.
+
+**Browse and refine.** Search the catalog and filter by category, input or output format, license (including open-source only), language, and install method. Copy a tool's install command.
+
+**Share, save, and compare.** Shareable links such as `#q=…&mode=pipeline` rerun the search when opened. Favorites and recent searches are stored in the browser. Compare up to three tools side by side.
+
+**Reliability.** Requests have timeouts and automatic retries with backoff for cold starts, 5xx, 429, and network errors. A cancel button and elapsed-time status are provided. Settings can test the connection through `/v1/models`; endpoint and mixed-content validation and a 10–4000 character input limit are built in. If Kev is unreachable or the key is wrong, keyword search provides a fallback.
 
 ## Catalog
 
@@ -38,6 +43,10 @@ Then set the endpoint to `http://localhost:8009`.
 ```bash
 cd site && python3 -m http.server 8080
 ```
+
+## Tests
+
+Run `npm test` with Node 22 or newer; no dependencies are required. It runs core unit tests, mock-server client tests, and catalog validation. GitHub Actions runs the suite on every push and pull request via [`.github/workflows/test.yml`](.github/workflows/test.yml).
 
 ## Example
 
