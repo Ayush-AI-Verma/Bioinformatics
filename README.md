@@ -18,31 +18,23 @@ Describe your bioinformatics task and the data you have; Kev (https://github.com
 
 The catalog is [`site/tools.json`](site/tools.json), with fields `id`, `name`, `category`, `description`, `inputs`, `outputs`, `language`, `license`, `install`, and `url`. Every URL was checked live. Pull requests are welcome.
 
-## Backend
-
-The default endpoint is <https://ayush-ai-verma--kev27b-api.modal.run>, serving Kev-27B on Modal with B200, H200, or H100 GPUs. It costs about $6.25/hour while warm and scales to zero after five idle minutes. Cold start is about one minute; the first-ever start can take several minutes.
-
-Enter an API key in the **Settings** tab. The key is stored only in your browser's `localStorage` and is never committed.
-
-To deploy your own endpoint, use [`deploy/kev_serve.py`](deploy/kev_serve.py): Kev's Modal deploy script plus an outer CORS layer, which browsers need to call a key-protected endpoint:
+## Run it locally
 
 ```bash
-KEV_MODEL=jaredpalmer/kev-27b KEV_APP_NAME=kev27b KEV_API_KEY=$(openssl rand -hex 24) modal deploy deploy/kev_serve.py
+git clone https://github.com/Ayush-AI-Verma/Bioinformatics.git && cd Bioinformatics && python3 serve.py
 ```
 
-Any System One endpoint works. To run Kev locally:
+If `KEV_API_KEY` is not already set in the environment or `.env`, startup prompts for it with hidden input and asks whether to save it in `.env` for next time. The file is gitignored and saved with owner-only permissions. The local server adds the key to requests to Kev; the browser never receives the server-side key.
+
+The default endpoint is <https://ayush-ai-verma--kev27b-api.modal.run>, serving Kev-27B on Modal with B200, H200, or H100 GPUs. It costs about $6.25/hour while warm and scales to zero after five idle minutes. After idle, the cold start is about one minute; the first-ever start can take several minutes.
+
+The server binds to `127.0.0.1` on port 8000 by default. If that port is busy, it tries ports 8001 through 8010. Choose a port or suppress browser launch with:
 
 ```bash
-uv run --extra serve python -m kev.serve --run jaredpalmer/kev-0.8b --port 8009
+python3 serve.py --port 8080 --no-browser
 ```
 
-Then set the endpoint to `http://localhost:8009`.
-
-## Run locally
-
-```bash
-cd site && python3 -m http.server 8080
-```
+Set `KEV_ENDPOINT` in the environment or `.env` to your Kev-9B endpoint to use that model instead. The same setting can point to any System One endpoint.
 
 ## Tests
 
