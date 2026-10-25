@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Kev Playground</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --border: #2a2f3a;
+    --text: #e6e9ef; --dim: #9aa3b2; --accent: #5b8cff;
+    --yes: #3fb950; --no: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 -apple-system, "SF Mono", Menlo, monospace;
+  }
+  header {
+    display: flex; gap: 10px; align-items: end; flex-wrap: wrap;
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    background: var(--panel); position: sticky; top: 0; z-index: 2;
+  }
+  header .brand { font-weight: 700; margin-right: 8px; font-size: 15px; }
+  label { display: flex; flex-direction: column; gap: 4px; color: var(--dim); font-size: 11px; }
+  input, select, textarea, button {
+    background: #0d1017; color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px;
+  }
+  textarea { width: 100%; min-height: 120px; resize: vertical; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #0b1220; font-weight: 700; }
+  button:disabled { opacity: .5; cursor: default; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 18px; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .panel h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .mode-switch { display: flex; gap: 4px; }
+  .mode-switch button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }
+  .pipeline-example { margin-top: 8px; }
+  .pipeline-step { margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+  .pipeline-step h3 { margin: 0 0 8px; font-size: 14px; }
+  .pipeline-tools { display: grid; gap: 8px; margin-top: 8px; }
+  .pipeline-tool { padding: 8px; border: 1px solid var(--border); border-radius: 6px; }
+  .pipeline-tool p { margin: 4px 0; }
+  .pipeline-tool code { overflow-wrap: anywhere; }
+  .qrow { display: grid; grid-template-columns: 92px 1fr 1fr 30px; gap: 8px; margin-bottom: 8px; }
+  .qrow input { width: 100%; }
+  .qrow .del { padding: 4px 8px; color: var(--no); }
+  #results .qa { padding: 10px 0; border-top: 1px solid var(--border); }
+  .qa .instr { color: var(--text); margin-bottom: 6px; }
+  .qa .meta { color: var(--dim); font-size: 11px; margin-bottom: 6px; }
+  .bar { display: grid; grid-template-columns: 160px 1fr 64px; gap: 8px; align-items: center; margin: 3px 0; }
+  .bar .name { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar .track { background: #0d1017; border: 1px solid var(--border); border-radius: 4px; height: 16px; overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--accent); }
+  .bar .fill.yes { background: var(--yes); }
+  .bar .fill.no { background: var(--no); }
+  .bar .fill.top { background: var(--yes); }
+  .bar .p { text-align: right; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 8px; font-size: 11px; margin-left: 8px; }
+  .badge.yes { background: rgba(63,185,80,.15); color: var(--yes); border: 1px solid var(--yes); }
+  .badge.no { background: rgba(248,81,73,.15); color: var(--no); border: 1px solid var(--no); }
+  .err { color: var(--no); white-space: pre-wrap; }
+  .dim { color: var(--dim); font-size: 12px; }
+  a.mlink { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); }
+  a.mlink:hover { text-decoration: underline; }
+  #status { margin-left: auto; color: var(--dim); align-self: center; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">kev playground</span>
+  <label>Endpoint
+    <input id="baseUrl" style="width:300px" value="https://ayush-ai-verma--kev27b-api.modal.run" />
+  </label>
+  <label>Model
+    <select id="model" style="width:140px">
+      <option value="kev-27b" selected>kev-27b</option>
+      <option value="kev-9b">kev-9b</option>
+      <option value="kev-latest">kev-latest (local)</option>
+    </select>
+  </label>
+  <label>API key (optional)
+    <input id="apiKey" type="password" style="width:180px" placeholder="Bearer key" />
+  </label>
+  <button id="run" class="primary">Run</button>
+  <span id="status"></span>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Document</h2>
+    <div class="row" style="margin-bottom:8px">
+      <select id="docPreset">
+        <option value="">Load a preset…</option>
+        <option value="safe">Safe kitchen</option>
+        <option value="safeDetailed">Safe kitchen (detailed)</option>
+        <option value="unsafe">Unsafe kitchen</option>
+        <option value="bioScientist">Bioinformatics scientist</option>
+      </select>
+      <button id="clearDoc">Clear</button>
+    </div>
+    <textarea id="doc" placeholder="Paste the text Kev should read…"></textarea>
+
+    <h2 style="margin-top:16px">Questions</h2>
+    <div id="questions"></div>
+    <div class="row">
+      <button id="addQ">+ Add question</button>
+      <button id="loadKitchen">Load kitchen-safety 20</button>
+      <button id="loadScientist">Load scientist-profile 15</button>
+      <button id="clearQ">Clear questions</button>
+    </div>
+    <p class="dim">Types: yes/no → a probability; choice → comma-separated options;
+      score → comma-separated levels, low to high.</p>
+  </section>
+
+  <section class="panel" style="grid-column: 1 / -1" id="keyPanel">
+    <h2>Model finder — which bioinformatics model fits your task?</h2>
+    <div class="row" style="margin-bottom:8px">
+      <input id="taskText" style="flex:1" placeholder='Describe your task, e.g. "score mutation effects in a protein family" or "annotate cell types in my scRNA-seq data"' />
+      <div class="mode-switch" role="group" aria-label="Recommendation mode">
+        <button id="modeSingle" type="button" aria-pressed="true">Single</button>
+        <button id="modePipeline" type="button" aria-pressed="false">Pipeline</button>
+      </div>
+      <button id="runKey" class="primary">Identify</button>
+    </div>
+    <div class="row pipeline-example">
+      <button id="pipelineExample" type="button">Pipeline: Assemble a bacterial genome from nanopore reads, find its biosynthetic gene clusters, then dock the predicted products against a target protein</button>
+    </div>
+    <div id="keyPath"></div>
+  </section>
+
+  <section class="panel" id="resultPanel">
+    <h2>Results</h2>
+    <div id="usage" class="dim"></div>
+    <div id="results"><span class="dim">Run to see answers.</span></div>
+  </section>
+</main>
+
+<script type="module">
+import * as core from "/core.js";
+import * as pipeline from "/static/pipeline.js";
+
+const SAFE = `I'm making dinner in my kitchen. All the pot handles on the stove are turned inward so they can't be knocked. I have dry oven mitts ready for handling hot cookware. The stove is turned off whenever I'm not using it. The dish towels and paper towels are stored in a drawer, away from the burners. I cut vegetables on a stable cutting board that doesn't slide, always cutting away from my body. My knives are washed and kept in a knife block, never left loose in the sink. A pot lid and a box of baking soda are right next to the stove in case of a grease fire. I stay in the kitchen the whole time food is cooking. My sleeves are rolled up and my long hair is tied back. The smoke detector was tested last month and works. I washed my hands with soap before I started cooking. The raw chicken is on its own plate on the bottom shelf of the fridge, away from the salad and other ready-to-eat food, and I use a separate cutting board just for raw meat. I'll put the leftovers in the fridge as soon as we finish eating, well within two hours. A small spill by the counter was wiped up immediately. Electrical cords are routed away from the sink and the hot surfaces. My kids and the dog are in the living room, out of the cooking area. The floor is dry and clear of anything I could trip on. I know the fire extinguisher is mounted by the pantry door.`;
+
+const SAFE_DETAILED = `I'm making dinner in my kitchen — pasta with sautéed chicken, on a gas stove. I've cooked here for years, and I'm careful because I've seen how fast things go wrong: a grease fire can flare up in seconds and fire is genuinely dangerous if you stop paying attention to it, so I never treat the open flame casually. All the pot handles on the stove are turned inward so they can't be knocked — I started doing that after a friend bumped a handle and spilled boiling water. I keep two dry oven mitts on the hook by the oven for handling hot cookware; a damp mitt conducts heat straight through and will burn you faster than a bare hand. The stove is turned off whenever I'm not actively using it, and I double-check the knobs out of habit. The dish towels and paper towels live in a drawer on the far side of the kitchen, well away from the burners, because loose fabric near a flame is how kitchen fires start. I cut vegetables on a heavy wooden board with a damp cloth underneath so it can't slide, and I always cut away from my body with my fingers curled under. My knives are washed, dried and kept in a knife block on the counter — never left loose in a sink full of soapy water where someone's hand could find a blade by accident. A pot lid and a box of baking soda sit within arm's reach of the stove in case of a grease fire; I know to smother it, never to throw water on burning oil. I stay in the kitchen the whole time food is cooking, especially the pan of oil heating for the chicken — hot oil is the one thing I never leave unattended. My sleeves are rolled up, my apron strings are tucked in, and my long hair is tied back so nothing dangles near the flame. The smoke detector outside the kitchen door was tested last month and works; I hear it chirp in the annual test. I washed my hands with soap and warm water for a full twenty seconds before I started cooking, and again after handling the chicken. The raw chicken is sealed on its own plate on the bottom shelf of the fridge, well away from the salad and other ready-to-eat food, and I use a separate red cutting board just for raw meat so nothing cross-contaminates. Once we finish eating I'll put the leftovers in shallow containers and into the fridge within the hour, well inside the two-hour window where bacteria multiply fastest. A small splash of water by the counter got wiped up the moment it happened — a wet tile floor and someone carrying a hot pan is a bad combination. The toaster and kettle cords are routed along the back of the counter, away from the sink and any hot surface. My kids and the dog are in the living room; the rule is nobody under four feet tall or four legs in the cooking zone while the stove is on. The floor is dry and clear — no bags, boxes, or toys I could trip over while carrying something hot. And I know exactly where the fire extinguisher is: mounted on the wall by the pantry door, checked last year, pin still in.`;
+
+const BIO_SCIENTIST = `I'm a computational biologist at a mid-size research institute, splitting my week between the wet lab and a small GPU workstation. My main system is Escherichia coli — I engineer strains for metabolic work and study antibiotic resistance evolution — but I also handle Enterococcus isolates from a hospital collaboration and occasional environmental metagenomic samples from wastewater. On the protein side, I work on enzyme engineering: I use AlphaFold2 through ColabFold for routine folding of single sequences, Boltz-1 on our local GPU when I need protein-ligand or complex structures (we keep everything on-prem because of hospital data agreements), and ESM-2 for zero-shot variant-effect scoring when I'm triaging mutation libraries before ordering oligos. For anything high-value I sanity-check with SaProt since we cache AF2 structures for the strains we study. On the sequence side, I use DNABERT-2 embeddings for promoter classification in E. coli, and I've been testing Nucleotide Transformer when a project crosses into other species. For differential expression on bulk RNA-seq I just run DESeq2 — it's the right tool, no reason to be clever. Our single-cell work goes through scFoundation for annotation and imputation, with scVI as the classical baseline I trust for integration. When microscopy comes up, the imaging core runs Cellpose for segmentation and I do downstream spatial stats in Squidpy. Metagenomic reads go through Kraken2 for taxonomic profiling, then I do functional analysis downstream. My pipelines are Nextflow on a Slurm cluster, sequence search is still HMMER and BLAST against UniRef50, and for literature mining I run PubMedBERT-based NER over new papers weekly. For decision-type questions — is this sample contaminated, does this email need my PI, is this result plausible — I've been experimenting with Kev as a scoring layer. What I don't do: clinical diagnostics, medical imaging, or anything patient-facing; our work is research-grade only. Main current challenges: predicting which resistance mutations will actually fix in a population, designing a thermostable variant of a plastic-degrading enzyme, and figuring out why one transporter cluster keeps showing up in wastewater samples.`;
+
+const UNSAFE = `I'm making dinner in my kitchen. The pot handles are sticking out over the edge of the stove where anyone walking past could bump them. My oven mitts are still damp from washing dishes. I left the stove on while I stepped away to answer the phone. A dish towel and a roll of paper towels are sitting right next to the burners. I'm chopping vegetables on a wobbly board that slides around, and I pull the knife toward myself when I cut. The knives are soaking in the soapy water in the sink where you can't see them. There's no lid or baking soda near the stove. I'm in the living room watching TV while food cooks on high heat. I'm wearing a loose flowing sweater and my long hair is down. The smoke detector battery died months ago and I never replaced it. I didn't wash my hands before I started cooking. The raw chicken is sitting on the counter right next to the salad, and I used the same cutting board for the chicken and the vegetables. Leftovers from lunch have been sitting out since noon and I'll get to them eventually. There's an oil spill on the floor I haven't cleaned up. The toaster cord is dangling into the sink near the water. My toddler is playing on the kitchen floor and the dog is underfoot waiting for scraps. The floor is wet and there are bags and boxes I could trip over. I have no idea where the fire extinguisher is, or if we even have one.`;
+
+const KITCHEN_QUESTIONS = [
+  "Are the pot handles turned inward?",
+  "Are you using dry oven mitts to handle hot cookware?",
+  "Is the stove turned off when not in use?",
+  "Are towels and paper kept away from the burners?",
+  "Are you cutting on a stable cutting board?",
+  "Are knives stored separately rather than left in the sink?",
+  "Are you cutting away from your body?",
+  "Is a lid or baking soda within reach in case of a grease fire?",
+  "Are you staying in the kitchen while food cooks?",
+  "Is loose clothing and long hair tied back?",
+  "Is the smoke detector working?",
+  "Did you wash your hands before cooking?",
+  "Are raw meats kept separate from ready-to-eat food?",
+  "Are you using a different cutting board for raw meat?",
+  "Will leftovers be refrigerated within 2 hours?",
+  "Have spills been wiped up right away?",
+  "Are electrical cords kept away from water and hot surfaces?",
+  "Are children and pets kept out of the cooking area?",
+  "Is the floor dry and free of tripping hazards?",
+  "Do you know where the fire extinguisher is?",
+];
+
+const SCIENTIST_QUESTIONS = [
+  ["Does the person work with protein structures?", "noul", ""],
+  ["Do they have local GPU compute available?", "noul", ""],
+  ["Do they work with single-cell data?", "noul", ""],
+  ["Do they handle patient-facing or clinical work?", "noul", ""],
+  ["Do they use classical statistics for differential expression?", "noul", ""],
+  ["Do they run anything on medical imaging?", "noul", ""],
+  ["Which organism is their main system?", "choice", "e_coli, s_cerevisiae, human_cell_lines, arabidopsis"],
+  ["What is their primary protein-structure tool?", "choice", "colabfold_alphafold2, boltz, rosettafold, cryo_em"],
+  ["What domain dominates their work?", "choice", "protein_engineering, genomics, imaging, clinical_diagnostics"],
+  ["How large is their compute budget?", "score", "laptop only, one gpu workstation, small cluster, hpc center"],
+  ["How central is machine learning to their workflow?", "score", "not at all, occasional tool, daily driver, research focus"],
+  ["Are they doing protein design or only analysis?", "choice", "design_and_engineering, analysis_only, both"],
+  ["Do they use cloud services for sensitive data?", "noul", ""],
+  ["Do they work with metagenomic samples?", "noul", ""],
+  ["Is antibiotic resistance part of their research?", "noul", ""],
+];
+
+const questionsEl = document.getElementById("questions");
+
+function addQuestion(instr = "", type = "noul", criteria = "") {
+  const row = document.createElement("div");
+  row.className = "qrow";
+  row.innerHTML = `
+    <select class="qtype">
+      <option value="noul">yes / no</option>
+      <option value="choice">choice</option>
+      <option value="score">score</option>
+    </select>
+    <input class="qinstr" placeholder="Question…" />
+    <input class="qcrit" placeholder="options / levels, comma-separated" />
+    <button class="del" title="Remove">✕</button>`;
+  row.querySelector(".qtype").value = type;
+  row.querySelector(".qinstr").value = instr;
+  row.querySelector(".qcrit").value = criteria;
+  row.querySelector(".del").onclick = () => row.remove();
+  const crit = row.querySelector(".qcrit");
+  row.querySelector(".qtype").onchange = e => {
+    crit.style.display = e.target.value === "noul" ? "none" : "";
+  };
+  crit.style.display = type === "noul" ? "none" : "";
+  questionsEl.appendChild(row);
+}
+
+document.getElementById("addQ").onclick = () => addQuestion();
+document.getElementById("clearQ").onclick = () => { questionsEl.innerHTML = ""; };
+document.getElementById("clearDoc").onclick = () => { document.getElementById("doc").value = ""; };
+document.getElementById("docPreset").onchange = e => {
+  if (e.target.value === "safe") document.getElementById("doc").value = SAFE;
+  if (e.target.value === "safeDetailed") document.getElementById("doc").value = SAFE_DETAILED;
+  if (e.target.value === "unsafe") document.getElementById("doc").value = UNSAFE;
+  if (e.target.value === "bioScientist") document.getElementById("doc").value = BIO_SCIENTIST;
+  e.target.value = "";
+};
+document.getElementById("loadKitchen").onclick = () => {
+  questionsEl.innerHTML = "";
+  KITCHEN_QUESTIONS.forEach(q => addQuestion(q));
+};
+document.getElementById("loadScientist").onclick = () => {
+  questionsEl.innerHTML = "";
+  SCIENTIST_QUESTIONS.forEach(([q, t, c]) => addQuestion(q, t, c));
+};
+
+function collectQuestions() {
+  const out = {};
+  let i = 0;
+  collectQuestions.bad = 0;
+  for (const row of questionsEl.children) {
+    row.style.outline = "";
+    const type = row.querySelector(".qtype").value;
+    const instructions = row.querySelector(".qinstr").value.trim();
+    if (!instructions) continue;
+    const q = { type, instructions };
+    const crit = row.querySelector(".qcrit").value.split(",").map(s => s.trim()).filter(Boolean);
+    if (type === "choice" || (type === "score" && !crit.length && looksLikeModelPick(instructions))) {
+      const opts = crit.length ? Object.fromEntries(crit.map(o => [o, null])) : catalogFor(instructions);
+      if (!Object.keys(opts).length) { row.style.outline = "1px solid var(--no)"; collectQuestions.bad++; continue; }
+      q.type = "choice";
+      q.criteria = opts;
+      q._pick = !crit.length;
+    } else if (type === "score") {
+      q.criteria = crit.length ? crit : ["low", "medium", "high"];
+    }
+    out["q" + ++i] = q;
+  }
+  return out;
+}
+collectQuestions.bad = 0;
+
+const CATALOGS = {
+  structure: {
+    "AlphaFold-3":       "best-in-class biomolecular structure (ligands, complexes); server only",
+    "Boltz-1 / Boltz-2": "open-weights AlphaFold3-class protein-ligand structure prediction",
+    "ColabFold (AF2)":   "MSA-based single-protein and multimer folding, open",
+    "ESMFold":           "fast single-sequence folding via ESM-2, no alignment",
+    "Chai-1":            "open multimodal structure prediction for complexes and ligands",
+    "OpenFold":          "open trainable reimplementation of AlphaFold-2",
+  },
+  protein_lm: {
+    "ESM-2":       "default protein LM — embeddings and zero-shot variant scoring",
+    "SaProt-650M": "structure-aware protein LM using AF2 structure tokens",
+    "ESM-3":       "multimodal protein generation over sequence, structure, function",
+    "ESM-C":       "newer protein representation model",
+    "ProtT5-XL":   "protein encoder for localization, function, per-residue features",
+  },
+  genomics: {
+    "Evo-1 / Evo-2":            "long-context genomic foundation model",
+    "Nucleotide Transformer":   "multi-species DNA LM for regulatory and variant tasks",
+    "DNABERT-2":                "efficient DNA model for human regulatory tasks",
+    "Enformer":                 "long-range gene expression prediction from DNA",
+    "antiSMASH":                "biosynthetic gene cluster (BGC) detection & secondary metabolite prediction in bacterial/fungal genomes",
+  },
+  single_cell: {
+    "scFoundation": "single-cell foundation model for annotation, imputation, perturbation",
+    "Geneformer":   "single-cell LM for dosage sensitivity and network dynamics",
+    "scVI":         "classical probabilistic model for integration and annotation",
+    "CELLxGENE":    "CZI atlas & browser for single-cell datasets",
+    "NCBI GEO / SRA":"raw & processed expression and sequencing archives",
+  },
+  databases_lookup: {
+    "UniProt":              "curated protein sequences, domains, function annotations (Swiss-Prot/TrEMBL)",
+    "NCBI Gene":            "gene-centered records, nomenclature, RefSeq links across organisms",
+    "NCBI Genome / Assembly":"reference and representative genome assemblies across species",
+    "NCBI RefSeq":          "non-redundant curated reference genomes, transcripts, proteins",
+    "AlphaFold DB":         "200M+ precomputed AlphaFold-2 protein structures (EBI/DeepMind)",
+    "RCSB PDB":             "experimental 3D macromolecular structures (X-ray, cryo-EM, NMR)",
+    "Foldseek":             "ultrafast 3D structure similarity search across AlphaFold DB & PDB",
+    "NCBI BLAST":           "sequence similarity search (blastp, blastn, tblastn) against nr/RefSeq",
+    "HMMER / InterPro":     "profile-HMM domain search and protein family classification (Pfam)",
+    "Ensembl":              "comparative genomics, variation, regulatory annotations",
+    "NCBI ClinVar":         "human genetic variants and clinical pathogenicity assertions",
+    "NCBI SRA / GEO":       "raw sequencing reads (SRA) and functional genomics datasets (GEO)",
+    "antiSMASH":            "biosynthetic gene cluster (BGC) mining for secondary metabolites / natural products in microbes",
+    "MIBiG":                "curated repository of characterized biosynthetic gene clusters and natural products",
+  },
+  general: {
+    "AlphaFold-3 / Boltz":   "3D structure prediction (proteins, ligands, complexes)",
+    "AlphaFold DB / RCSB PDB":"look up existing 3D structures before running folding",
+    "Foldseek":              "search 3D structure similarity across PDB & AlphaFold DB",
+    "UniProt / NCBI RefSeq": "curated protein & gene sequences and functional annotations",
+    "NCBI Gene / Genome":    "gene records, reference genomes, assemblies",
+    "NCBI BLAST / HMMER":    "sequence homology and domain search",
+    "antiSMASH / MIBiG":     "biosynthetic gene clusters (BGCs) and secondary metabolites in bacteria/fungi",
+    "ColabFold / ESMFold":   "fast single-chain protein folding",
+    "ESM-2 / SaProt":        "protein embeddings and mutation/variant effect scoring",
+    "ESM-3 / RFdiffusion":   "designing new proteins",
+    "DNABERT-2 / Evo":       "DNA and genomic sequence modeling",
+    "scFoundation / scVI":   "single-cell RNA-seq analysis",
+    "DESeq2 / edgeR":        "bulk RNA-seq differential expression",
+    "PubMedBERT / BioMistral":"mining or QA over biomedical literature",
+    "ChemBERTa / MoLFormer": "small-molecule embeddings and property prediction",
+    "Cellpose / Squidpy":    "microscopy segmentation and spatial omics",
+    "Kraken2 / MetaPhlAn":   "metagenomic taxonomic profiling",
+  },
+};
+
+function looksLikeModelPick(s) {
+  return /\b(best|which|what|where|recommend|appropriate|pick|choose|tool|model|database|resource|site|search|lookup)\b/i.test(s);
+}
+
+const MODEL_LINKS = {
+  "AlphaFold-3":              "https://alphafoldserver.com",
+  "AlphaFold-3 / Boltz":      "https://huggingface.co/boltz-community/boltz-1",
+  "AlphaFold-2 / ColabFold":  "https://github.com/sokrypton/ColabFold",
+  "ColabFold (AF2)":          "https://github.com/sokrypton/ColabFold",
+  "ColabFold / ESMFold":      "https://huggingface.co/facebook/esmfold_v1",
+  "Boltz-1 / Boltz-2":        "https://huggingface.co/boltz-community/boltz-1",
+  "Boltz-1/2":                "https://huggingface.co/boltz-community/boltz-1",
+  "Chai-1":                   "https://huggingface.co/chaidiscovery/chai-1",
+  "ESMFold":                  "https://huggingface.co/facebook/esmfold_v1",
+  "OpenFold":                 "https://huggingface.co/openfold/openfold_model_1_ptm",
+  "ESM-2":                    "https://huggingface.co/facebook/esm2_t33_650M_UR50D",
+  "ESM-2 / SaProt":           "https://huggingface.co/facebook/esm2_t33_650M_UR50D",
+  "ESM-1v":                   "https://huggingface.co/facebook/esm1v_t33_650M_UR90S_1",
+  "ESM-3":                    "https://huggingface.co/EvolutionaryScale/esm3-sm-open-v1",
+  "ESM-3 / RFdiffusion":      "https://huggingface.co/EvolutionaryScale/esm3-sm-open-v1",
+  "ESM-C":                    "https://huggingface.co/EvolutionaryScale/esmc-300m-2024-12",
+  "ESM-C 300M":               "https://huggingface.co/EvolutionaryScale/esmc-300m-2024-12",
+  "SaProt-650M":              "https://huggingface.co/westlake-research/SaProt_650M_AF2",
+  "ProtT5-XL":                "https://huggingface.co/Rostlab/prot_t5_xl_uniref50",
+  "ProtT5-XL / ProtBert":     "https://huggingface.co/Rostlab/prot_t5_xl_uniref50",
+  "ProtBert":                 "https://huggingface.co/Rostlab/prot_bert",
+  "RFdiffusion":              "https://github.com/RosettaCommons/RFdiffusion",
+  "Evo-1 / Evo-2":            "https://huggingface.co/togethercomputer/evo-1-8k-base",
+  "DNABERT-2 / Evo":          "https://huggingface.co/zhihan1996/DNABERT-2-117M",
+  "Nucleotide Transformer":   "https://huggingface.co/InstaDeepAI/nucleotide-transformer-v2-500m-multi-species",
+  "Nucleotide Transformer v2":"https://huggingface.co/InstaDeepAI/nucleotide-transformer-v2-500m-multi-species",
+  "DNABERT-2":                "https://huggingface.co/zhihan1996/DNABERT-2-117M",
+  "Enformer":                 "https://huggingface.co/EleutherAI/enformer-official-rough",
+  "HyenaDNA":                 "https://huggingface.co/LongSafari/hyenadna-medium-160k-seqlen-hf",
+  "Geneformer":               "https://huggingface.co/ctheodoris/Geneformer",
+  "scFoundation":             "https://github.com/biomap-research/scFoundation",
+  "scFoundation / scVI":      "https://github.com/biomap-research/scFoundation",
+  "scVI":                     "https://scvi-tools.org",
+  "DESeq2 / edgeR (classical)":"https://bioconductor.org/packages/DESeq2/",
+  "DESeq2 / edgeR":           "https://bioconductor.org/packages/DESeq2/",
+  "DESeq2":                   "https://bioconductor.org/packages/DESeq2/",
+  "edgeR":                    "https://bioconductor.org/packages/edgeR/",
+  "limma-voom":               "https://bioconductor.org/packages/limma/",
+  "Cellpose":                 "https://github.com/MouseLand/cellpose",
+  "Cellpose / Squidpy":       "https://github.com/MouseLand/cellpose",
+  "StarDist":                 "https://github.com/stardist/stardist",
+  "Mesmer":                   "https://github.com/vanvalenlab/deepcell-tf",
+  "Squidpy / spatial stats":  "https://squidpy.readthedocs.io",
+  "Squidpy":                  "https://squidpy.readthedocs.io",
+  "Giotto / spatialGE":       "https://drieslab.github.io/Giotto_website/",
+  "Nicheformer":              "https://github.com/theislab/nicheformer",
+  "Kraken2 / MetaPhlAn (classical)":"https://github.com/DerrickWood/kraken2",
+  "Kraken2 / MetaPhlAn":      "https://github.com/DerrickWood/kraken2",
+  "Kraken2":                  "https://github.com/DerrickWood/kraken2",
+  "MetaPhlAn":                "https://github.com/biobakery/MetaPhlAn",
+  "MoLFormer-XL":             "https://huggingface.co/ibm/MoLFormer-XL-both-10pct",
+  "ChemBERTa":                "https://huggingface.co/DeepChem/ChemBERTa-77M-MLM",
+  "ChemBERTa / MoLFormer":    "https://huggingface.co/DeepChem/ChemBERTa-77M-MLM",
+  "Uni-Mol":                  "https://github.com/deepmodeling/Uni-Mol",
+  "PubMedBERT / BioBERT":     "https://huggingface.co/microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext",
+  "PubMedBERT / BioMistral":  "https://huggingface.co/microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext",
+  "PubMedBERT":               "https://huggingface.co/microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext",
+  "BioBERT":                  "https://huggingface.co/dmis-lab/biobert-base-cased-v1.2",
+  "BioLinkBERT":              "https://huggingface.co/michiyasunaga/BioLinkBERT-base",
+  "BioMistral-7B / Meditron": "https://huggingface.co/BioMistral/BioMistral-7B",
+  "BioMistral-7B":            "https://huggingface.co/BioMistral/BioMistral-7B",
+  "Meditron":                 "https://huggingface.co/epfLLM/meditron-7b",
+  // Databases, search engines & NCBI / EBI resources
+  "NCBI Gene":                "https://www.ncbi.nlm.nih.gov/gene",
+  "NCBI Genome":              "https://www.ncbi.nlm.nih.gov/datasets/genome/",
+  "NCBI Genome / Assembly":   "https://www.ncbi.nlm.nih.gov/datasets/genome/",
+  "NCBI Gene / Genome":       "https://www.ncbi.nlm.nih.gov/datasets/genome/",
+  "NCBI RefSeq":              "https://www.ncbi.nlm.nih.gov/refseq/",
+  "NCBI GenBank":             "https://www.ncbi.nlm.nih.gov/genbank/",
+  "NCBI BLAST":               "https://blast.ncbi.nlm.nih.gov/Blast.cgi",
+  "NCBI BLAST / HMMER":       "https://blast.ncbi.nlm.nih.gov/Blast.cgi",
+  "NCBI ClinVar":             "https://www.ncbi.nlm.nih.gov/clinvar/",
+  "NCBI dbSNP":               "https://www.ncbi.nlm.nih.gov/snp/",
+  "NCBI SRA":                 "https://www.ncbi.nlm.nih.gov/sra",
+  "NCBI GEO":                 "https://www.ncbi.nlm.nih.gov/geo/",
+  "NCBI SRA / GEO":           "https://www.ncbi.nlm.nih.gov/sra",
+  "NCBI GEO / SRA":           "https://www.ncbi.nlm.nih.gov/geo/",
+  "NCBI PubMed":              "https://pubmed.ncbi.nlm.nih.gov/",
+  "NCBI Taxonomy":            "https://www.ncbi.nlm.nih.gov/taxonomy",
+  "NCBI Conserved Domains (CDD)": "https://www.ncbi.nlm.nih.gov/Structure/cdd/cdd.shtml",
+  "UniProt":                  "https://www.uniprot.org/",
+  "UniProt / NCBI RefSeq":    "https://www.uniprot.org/",
+  "Foldseek":                 "https://search.foldseek.com/",
+  "AlphaFold DB":             "https://alphafold.ebi.ac.uk/",
+  "AlphaFold DB / RCSB PDB":  "https://alphafold.ebi.ac.uk/",
+  "RCSB PDB":                 "https://www.rcsb.org/",
+  "PDBe":                     "https://www.ebi.ac.uk/pdbe/",
+  "InterPro":                 "https://www.ebi.ac.uk/interpro/",
+  "HMMER / InterPro":         "https://www.ebi.ac.uk/Tools/hmmer/",
+  "Pfam":                     "https://www.ebi.ac.uk/interpro/entry/pfam/",
+  "Ensembl":                  "https://www.ensembl.org/",
+  "UCSC Genome Browser":      "https://genome.ucsc.edu/",
+  "STRING":                   "https://string-db.org/",
+  "KEGG":                     "https://www.genome.jp/kegg/",
+  "Reactome":                 "https://reactome.org/",
+  "BioCyc / EcoCyc":          "https://ecocyc.org/",
+  "CELLxGENE":                "https://cellxgene.cziscience.com/",
+  "ChEMBL":                   "https://www.ebi.ac.uk/chembl/",
+  "PubChem":                  "https://pubchem.ncbi.nlm.nih.gov/",
+  "ZINC20":                   "https://zinc20.docking.org/",
+  "CARD (Antibiotic Resistance)": "https://card.mcmaster.ca/",
+  "antiSMASH":                "https://antismash.secondarymetabolites.org/",
+  "antiSMASH / MIBiG":        "https://antismash.secondarymetabolites.org/",
+  "antiSMASH DB":             "https://antismash-db.secondarymetabolites.org/",
+  "MIBiG":                    "https://mibig.secondarymetabolites.org/",
+  "BiG-SCAPE":                "https://github.com/medema-group/BiG-SCAPE",
+  "GECCO":                    "https://gecco.embl.de/",
+  "DeepBGC":                  "https://github.com/Merck/deepbgc",
+  "GWAS Catalog":             "https://www.ebi.ac.uk/gwas/",
+  "OMIM":                     "https://www.omim.org/",
+  "Open Targets":             "https://platform.opentargets.org/",
+  "GeneCards":                "https://www.genecards.org/",
+};
+
+const RESOURCE_DESC = {
+  "UniProt": "curated protein sequences, domain architecture, functional annotations",
+  "AlphaFold DB": "200M+ precomputed AlphaFold-2 3D structures keyed by UniProt ID",
+  "RCSB PDB": "experimental 3D structures (X-ray, cryo-EM, NMR)",
+  "Foldseek": "3D structural similarity search across AlphaFold DB and PDB",
+  "NCBI Gene": "gene records, RefSeq transcripts, orthologs across species",
+  "NCBI Genome": "reference and assembly genomes across species",
+  "NCBI RefSeq": "curated non-redundant reference genomes, transcripts, proteins",
+  "NCBI BLAST": "sequence homology search (blastp, blastn) against RefSeq/nr",
+  "HMMER / InterPro": "profile-HMM domain and family classification (Pfam/InterPro)",
+  "InterPro": "protein domain and family signatures",
+  "NCBI ClinVar": "clinical variant pathogenicity assertions",
+  "NCBI SRA": "raw sequencing reads archive",
+  "NCBI GEO": "processed gene expression & functional genomics datasets",
+  "NCBI PubMed": "biomedical literature abstracts and citations",
+  "NCBI Taxonomy": "curated organism taxonomy and lineage IDs",
+  "Ensembl": "comparative genomics, variants, regulatory tracks",
+  "UCSC Genome Browser": "interactive genome browser tracks",
+  "BioCyc / EcoCyc": "curated metabolic pathways & operons (EcoCyc for E. coli)",
+  "STRING": "protein-protein interaction networks",
+  "KEGG": "metabolic and signaling pathway maps",
+  "Reactome": "curated biological pathway reactions",
+  "CELLxGENE": "single-cell expression atlas browser",
+  "ChEMBL": "bioactive small molecules and target activity data",
+  "PubChem": "chemical structures, bioassays, compound records",
+  "ZINC20": "docking-ready purchasable compound library",
+  "CARD (Antibiotic Resistance)": "curated antimicrobial resistance genes & mutations",
+  "antiSMASH": "biosynthetic gene cluster (BGC) detection & secondary metabolites",
+  "MIBiG": "curated reference database of known biosynthetic gene clusters",
+  "antiSMASH DB": "precomputed antiSMASH BGC results across microbial genomes",
+  "BiG-SCAPE": "biosynthetic gene cluster family network clustering",
+  "GWAS Catalog": "NHGRI-EBI catalog of published genome-wide association studies linking variants & genes to human traits",
+  "OMIM": "Online Mendelian Inheritance in Man — human genes and genetic phenotypes/traits",
+  "Open Targets": "gene-trait and gene-disease evidence aggregation across genetics, literature, and expression",
+  "GeneCards": "human gene compendium integrating functional, phenotype, and pathway annotations",
+};
+
+function linkModel(name) {
+  const url = MODEL_LINKS[name];
+  const label = core.esc(name);
+  return url ? `<a class="mlink" href="${core.esc(core.safeUrl(url))}" target="_blank" rel="noopener">${label} ↗</a>` : label;
+}
+function catalogFor(s) {
+  const t = s.toLowerCase();
+  if (/database|resource|site|lookup|look up|find existing|catalog|ncbi|uniprot|refseq|foldseek|pdb|homolog|blast|accession|antismash|mibig|bgc|secondary metabol|natural product/.test(t)) return CATALOGS.databases_lookup;
+  if (/struct|fold|3d|dock|ligand|complex/.test(t)) return CATALOGS.structure;
+  if (/mutat|variant|embed|protein lm|function|design/.test(t)) return CATALOGS.protein_lm;
+  if (/dna|genom|promot|enhanc|rna sequence/.test(t)) return CATALOGS.genomics;
+  if (/single.?cell|scrna/.test(t)) return CATALOGS.single_cell;
+  return CATALOGS.general;
+}
+
+function bar(name, p, cls = "") {
+  const pct = Math.round(p * 1000) / 10;
+  return `<div class="bar"><span class="name">${linkModel(name)}</span>
+    <span class="track"><span class="fill ${cls}" style="width:${pct}%"></span></span>
+    <span class="p">${p.toFixed(3)}</span></div>`;
+}
+
+function renderAnswer(name, q, a) {
+  let html = `<div class="qa"><div class="instr">${core.esc(q.instructions)}</div>`;
+  if (a.type === "noul") {
+    const yes = a.noul >= 0.5;
+    html += `<div class="meta">yes/no <span class="badge ${yes ? "yes" : "no"}">${yes ? "YES" : "NO"}</span></div>`;
+    html += bar("yes", a.noul, "yes");
+    html += bar("no", 1 - a.noul, "no");
+  } else if (a.type === "choice") {
+    const sorted = Object.entries(a.probabilities || {}).sort((x, y) => y[1] - x[1]);
+    if (q._pick && sorted.length >= 2) {
+      const [best, ...rest] = sorted;
+      const backups = rest.slice(0, 3).map(([k, p]) => `${linkModel(k)} (${p.toFixed(2)})`).join(", ");
+      const desc = (q.criteria && q.criteria[best[0]]) || "";
+      html += `<div class="meta">best pick → <b>${linkModel(best[0])}</b> (${best[1].toFixed(2)})` +
+        (desc ? ` — ${core.esc(desc)}` : "") + `<br>backups → ${backups}</div>`;
+    } else {
+      html += `<div class="meta">choice → <b>${linkModel(a.choice)}</b> · confidence ${(a.confidence ?? 0).toFixed(3)}</div>`;
+    }
+    for (const [opt, p] of sorted)
+      html += bar(opt, p, opt === a.choice ? "top" : "");
+  } else if (a.type === "score") {
+    html += `<div class="meta">score → <b>${core.esc(a.score)}</b> · confidence ${(a.confidence ?? 0).toFixed(3)}</div>`;
+    const legend = a.legend || {};
+    const probs = a.probabilities || {};
+    const top = Object.keys(probs).reduce((m, k) => probs[k] > probs[m] ? k : m, Object.keys(probs)[0]);
+    for (const [k, p] of Object.entries(probs))
+      html += bar(legend[k] ?? k, p, k === top ? "top" : "");
+  } else {
+    html += `<pre class="dim">${core.esc(JSON.stringify(a, null, 2))}</pre>`;
+  }
+  return html + "</div>";
+}
+
+document.getElementById("run").onclick = async () => {
+  const questions = collectQuestions();
+  const status = document.getElementById("status");
+  const results = document.getElementById("results");
+  if (!Object.keys(questions).length) {
+    status.textContent = collectQuestions.bad
+      ? "choice questions need options — fill the third field (comma-separated)"
+      : "add at least one question";
+    return;
+  }
+  if (collectQuestions.bad)
+    status.textContent = `${collectQuestions.bad} choice question(s) skipped — need options`;
+  document.getElementById("run").disabled = true;
+  status.textContent = "running…";
+  results.innerHTML = "";
+  document.getElementById("usage").textContent = "";
+  try {
+    const r = await fetch("/api/ask", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        base_url: document.getElementById("baseUrl").value,
+        model: document.getElementById("model").value,
+        api_key: document.getElementById("apiKey").value || null,
+        state: document.getElementById("doc").value,
+        questions,
+      }),
+    });
+    const data = await r.json();
+    if (data.error) { results.innerHTML = `<div class="err">${data.error}</div>`; status.textContent = "error"; return; }
+    const qlist = Object.entries(questions);
+    results.innerHTML = qlist.map(([name, q]) =>
+      data.answers[name] ? renderAnswer(name, q, data.answers[name]) : ""
+    ).join("");
+    const u = data.usage || {};
+    document.getElementById("usage").textContent =
+      `${qlist.length} questions · ${u.input_tokens ?? "?"} in / ${u.output_tokens ?? "?"} out tokens · ${Math.round(data.latency_ms ?? 0)} ms model time`;
+    status.textContent = "done";
+  } catch (e) {
+    results.innerHTML = `<div class="err">${e}</div>`;
+    status.textContent = "error";
+  } finally {
+    document.getElementById("run").disabled = false;
+  }
+};
+
+addQuestion();
+
+document.getElementById("model").onchange = e => {
+  const baseEl = document.getElementById("baseUrl");
+  if (e.target.value === "kev-latest") {
+    baseEl.value = "http://127.0.0.1:8009";
+  } else if (baseEl.value.includes("127.0.0.1") || baseEl.value.includes("localhost")) {
+    baseEl.value = "https://ayush-ai-verma--kev27b-api.modal.run";
+  }
+};
+
+// ---------- Dichotomous key: task description -> model recommendation ----------
+
+const L = (model, blurb, cands = [], resources = []) => ({ leaf: true, model, blurb, cands, resources });
+const N = (ask, edges) => ({ ask, edges });          // choice node, edges: option -> node
+const B = (instructions, yes, no, thresh = 0.5) =>   // yes/no node
+  ({ ask: { type: "noul", instructions }, yes, no, thresh });
+const C = (instructions, criteria, next) =>
+  ({ ask: { type: "choice", instructions, criteria }, next });
+
+const KEY_TREE = B(
+  "Is this about biology, proteins, genes, molecules, cells, or biomedical research?",
+  C("Which area of biology does this involve?", {
+    protein:               "proteins, enzymes, 3D structure, folding, mutations, docking",
+    dna_or_rna:            "DNA, RNA, genomes, promoters, variants, sequencing",
+    single_cell_expression:"single-cell RNA-seq, cell types, gene expression",
+    bulk_rnaseq:           "bulk RNA-seq, differential expression",
+    small_molecules:       "drug molecules, SMILES, chemical properties (no protein target)",
+    imaging_spatial:       "microscopy images, cell segmentation, spatial omics",
+    metagenomics:          "microbiome, bacterial communities, metagenomic reads",
+    biomedical_literature: "scientific papers, PubMed, clinical text",
+  }, {
+  protein: B("Is the task generating or designing new proteins rather than analyzing existing ones?",
+    L("ESM-3", "Multimodal generation over sequence, structure and function — design proteins with specified properties.",
+      [["ESM-3", "multimodal protein generation over sequence, structure and function"],
+       ["RFdiffusion", "diffusion-based protein backbone design"],
+       ["ESM-2", "protein LM — embeddings and variant scoring, not a designer"]],
+      ["UniProt", "AlphaFold DB", "Foldseek", "RCSB PDB", "InterPro"]),
+    B("Does the task score or interpret mutations / variant effects, or need sequence embeddings?",
+      B("Do you have AlphaFold-predicted structures available for the sequences?",
+        L("SaProt-650M", "Structure-aware protein LM; combines sequence with AF2-predicted structure tokens — stronger on variant and function tasks.",
+          [["SaProt-650M", "structure-aware protein LM using AF2 structure tokens"],
+           ["ESM-2", "sequence-only protein LM, zero-shot variant scoring"],
+           ["ESM-1v", "ensemble variant-effect predictor"]],
+          ["AlphaFold DB", "UniProt", "Foldseek", "NCBI ClinVar", "InterPro"]),
+        L("ESM-2", "The default protein language model — embeddings and zero-shot variant-effect scoring.",
+          [["ESM-2", "protein LM — embeddings and zero-shot variant-effect scoring"],
+           ["ESM-C 300M", "newer protein LM for sequence embeddings"],
+           ["SaProt-650M", "structure-aware LM — needs AF2 structures"]],
+          ["UniProt", "NCBI RefSeq", "NCBI BLAST", "HMMER / InterPro", "NCBI ClinVar"])),
+      B("Does the task need to look up, search, fold, or predict a 3D protein structure?",
+        B("Does it involve ligands, drug molecules, or multi-chain complexes?",
+          B("Do you need open weights you can run yourself?",
+            L("Boltz-1 / Boltz-2", "Open-source AlphaFold3-class structure prediction for protein–ligand complexes.",
+              [["Boltz-1/2", "open AlphaFold3-class protein-ligand structure prediction"],
+               ["Chai-1", "multimodal biomolecular structure prediction"],
+               ["AlphaFold-3", "best accuracy but server-only, weights closed"]],
+              ["RCSB PDB", "UniProt", "ChEMBL", "PubChem", "Foldseek"]),
+            L("AlphaFold-3", "Best-in-class structure prediction including ligands and nucleic acids — web server access only, weights closed.",
+              [["AlphaFold-3", "best-in-class structure prediction, server-only"],
+               ["Boltz-1/2", "open-weights alternative, nearly as accurate"],
+               ["Chai-1", "open multimodal structure model"]],
+              ["AlphaFold DB", "RCSB PDB", "UniProt", "Foldseek", "ChEMBL"])),
+          B("Are you looking up existing structures or searching by 3D similarity before folding from scratch?",
+            L("AlphaFold DB / RCSB PDB", "Check existing experimental (RCSB PDB) and 200M+ precomputed AlphaFold-2 structures first, and use Foldseek for 3D structural homology search — only fold de novo if your sequence is novel or mutated.",
+              [["AlphaFold DB", "200M+ precomputed AF2 structures keyed by UniProt"],
+               ["RCSB PDB", "experimental crystal / cryo-EM / NMR structures"],
+               ["Foldseek", "ultrafast 3D structure similarity search across AFDB & PDB"],
+               ["ColabFold (AF2)", "fold de novo with MSA if not in AFDB"],
+               ["ESMFold", "fast single-sequence folding for large batches"]],
+              ["AlphaFold DB", "RCSB PDB", "Foldseek", "UniProt", "NCBI RefSeq", "BioCyc / EcoCyc"]),
+            L("ESMFold", "Folds a single protein sequence into 3D fast, no alignment needed (use ColabFold/AF2 when accuracy beats speed).",
+              [["ESMFold", "fast single-sequence folding via ESM-2"],
+               ["AlphaFold-2 / ColabFold", "MSA-based folding, higher accuracy, slower"],
+               ["OpenFold", "open reimplementation of AlphaFold-2"],
+               ["AlphaFold DB", "precomputed structures — check before folding"],
+               ["Foldseek", "search 3D homologs of the folded model"]],
+              ["AlphaFold DB", "Foldseek", "RCSB PDB", "UniProt", "NCBI RefSeq"]))),
+        L("ProtT5-XL / ProtBert", "Established encoders for per-residue and per-protein features (localization, function, secondary structure).",
+          [["ProtT5-XL", "T5 protein encoder — localization, function, structure features"],
+           ["ProtBert", "BERT protein encoder, similar feature tasks"],
+           ["ESM-2", "newer embeddings — worth a try even for feature tasks"]],
+          ["UniProt", "InterPro", "NCBI BLAST", "HMMER / InterPro", "STRING"])))),
+  dna_or_rna: B("Is the task mining biosynthetic gene clusters (BGCs), secondary metabolites, NRPS/PKS, or natural products in microbial genomes?",
+    L("antiSMASH", "The standard pipeline for identifying and annotating biosynthetic gene clusters (NRPS, PKS, RiPPs, terpenes, etc.) in bacterial, fungal, and plant genomes.",
+      [["antiSMASH", "rule + profile-HMM detection and annotation of BGCs in bacterial/fungal genomes"],
+       ["GECCO", "CRF-based de novo BGC prediction for novel cluster classes"],
+       ["DeepBGC", "BiLSTM + Pfam2vec deep learning detector for novel BGCs"],
+       ["BiG-SCAPE", "sequence similarity network clustering of BGCs across genomes"]],
+      ["antiSMASH", "MIBiG", "antiSMASH DB", "BiG-SCAPE", "NCBI RefSeq", "NCBI Genome", "CARD (Antibiotic Resistance)"]),
+    B("Is the task looking up or exploring which genes or variants are associated with a trait, phenotype, or disease?",
+      L("NCBI Gene", "For finding genes linked to a trait, phenotype, or disease, curated gene/trait catalogs (NCBI Gene, GWAS Catalog, OMIM, Ensembl, Open Targets) are the direct tool — neural sequence models only come in once you have specific sequences or variants to score.",
+        [["NCBI Gene", "curated gene records, summaries, and phenotype links across species"],
+         ["GWAS Catalog", "genome-wide association variants and mapped genes for traits"],
+         ["OMIM", "human Mendelian genes and trait/phenotype descriptions"],
+         ["Open Targets", "ranked gene–trait and gene–disease associations"],
+         ["Ensembl", "gene models, variants, phenotype and regulatory annotations"],
+         ["DNABERT-2", "DNA sequence LM — only useful after you pick candidate sequences"]],
+        ["NCBI Gene", "GWAS Catalog", "OMIM", "Open Targets", "Ensembl", "NCBI ClinVar", "GeneCards"]),
+      B("Does the task need long genomic context or generating/scoring long DNA sequences?",
+        L("Evo-1 / Evo-2", "Genomic foundation model built for long-range DNA context — generation and variant scoring.",
+          [["Evo-1 / Evo-2", "long-context genomic foundation model"],
+           ["Nucleotide Transformer", "multi-species DNA LM, shorter context"],
+           ["HyenaDNA", "long-range DNA model"]],
+          ["NCBI Genome", "NCBI RefSeq", "NCBI Gene", "Ensembl", "BioCyc / EcoCyc", "antiSMASH"]),
+        B("Does the task span multiple species' genomes?",
+          L("Nucleotide Transformer v2", "DNA LM trained across many genomes — regulatory elements, variant prediction cross-species.",
+            [["Nucleotide Transformer v2", "multi-species DNA LM"],
+             ["DNABERT-2", "efficient human-centric DNA model"],
+             ["Enformer", "predicts expression from long sequences (DeepMind)"]],
+            ["NCBI Genome", "NCBI RefSeq", "NCBI Gene", "Ensembl", "NCBI BLAST"]),
+          L("DNABERT-2", "Efficient DNA model for promoter/enhancer and variant tasks on genomes.",
+            [["DNABERT-2", "efficient DNA LM for regulatory tasks"],
+             ["Nucleotide Transformer v2", "multi-species DNA LM"],
+             ["Enformer", "long-range expression prediction"]],
+            ["NCBI Gene", "NCBI RefSeq", "NCBI Genome", "UCSC Genome Browser", "Ensembl", "NCBI ClinVar"]))))),
+  single_cell_expression: B("Is the task about gene dosage sensitivity, cell-state transitions or network dynamics?",
+    L("Geneformer", "Pretrained on ~30M single-cell transcriptomes; strong on dosage-sensitivity and network questions.",
+      [["Geneformer", "single-cell LM — dosage sensitivity, network dynamics"],
+       ["scFoundation", "single-cell foundation model — annotation, imputation"],
+       ["scVI", "classical probabilistic single-cell model"]],
+      ["CELLxGENE", "NCBI GEO", "NCBI SRA", "NCBI Gene", "STRING"]),
+    L("scFoundation", "Large single-cell foundation model for annotation, imputation and perturbation response.",
+      [["scFoundation", "annotation, imputation, perturbation response"],
+       ["Geneformer", "dosage-sensitivity and network questions"],
+       ["scVI", "classical VAE baseline for integration/annotation"]],
+      ["CELLxGENE", "NCBI GEO", "NCBI SRA", "NCBI Gene"])),
+  bulk_rnaseq: L("DESeq2 / edgeR (classical)", "Bulk differential expression is a solved statistical problem — the classical count-model tools beat deep models here; reach for a foundation model only for cross-study transfer.",
+      [["DESeq2", "count-model differential expression, the standard"],
+       ["edgeR", "equivalent classical alternative"],
+       ["limma-voom", "fast linear-model pipeline"]],
+      ["NCBI GEO", "NCBI SRA", "NCBI Gene", "NCBI RefSeq", "KEGG", "Reactome"]),
+  imaging_spatial: B("Is the task segmenting cells or nuclei in microscopy images?",
+    L("Cellpose", "The standard deep model for cell/nuclei segmentation in microscopy images.",
+      [["Cellpose", "generalist cell segmentation model"],
+       ["StarDist", "star-convex nuclei segmentation"],
+       ["Mesmer", "whole-cell + nuclear segmentation for multiplex imaging"]],
+      ["CELLxGENE", "NCBI GEO"]),
+    L("Squidpy / spatial stats", "For spatial transcriptomics analysis (neighborhoods, spatial stats, integration) the Squidpy/toolbox ecosystem fits; foundation models here are still young.",
+      [["Squidpy", "spatial omics analysis toolbox"],
+       ["Giotto / spatialGE", "spatial analysis frameworks"],
+       ["Nicheformer", "newer spatial foundation model — evaluate carefully"]],
+      ["CELLxGENE", "NCBI GEO", "NCBI SRA"])),
+  metagenomics: B("Are you mining metagenomes or bacterial genomes for biosynthetic gene clusters (BGCs) / secondary metabolites / natural products?",
+    L("antiSMASH", "Identifies and annotates biosynthetic gene clusters (NRPS, PKS, RiPPs, bacteriocins, etc.) in bacterial/fungal genomes and metagenome-assembled genomes (MAGs).",
+      [["antiSMASH", "standard BGC detection & annotation pipeline"],
+       ["GECCO", "fast CRF-based BGC finder suited to large metagenomic assemblies"],
+       ["DeepBGC", "deep-learning detector for novel BGCs"],
+       ["BiG-SCAPE", "clusters BGCs into gene cluster families across genomes"]],
+      ["antiSMASH", "MIBiG", "antiSMASH DB", "BiG-SCAPE", "NCBI SRA", "NCBI Genome", "CARD (Antibiotic Resistance)"]),
+    L("Kraken2 / MetaPhlAn (classical)", "Taxonomic profiling of metagenomic reads is dominated by k-mer/marker classifiers — fast, accurate, and cheap; use LMs mainly for downstream functional analysis.",
+      [["Kraken2", "k-mer taxonomic classification of reads"],
+       ["MetaPhlAn", "marker-gene profiling"],
+       ["Nucleotide Transformer", "DNA LM if you need embeddings downstream"]],
+      ["NCBI SRA", "NCBI Taxonomy", "NCBI Genome", "NCBI RefSeq", "antiSMASH", "CARD (Antibiotic Resistance)"])),
+  small_molecules: B("Do you need large-scale molecule embeddings or property prediction at scale?",
+    L("MoLFormer-XL", "IBM's large masked LM over SMILES — molecule embeddings and property prediction.",
+      [["MoLFormer-XL", "large SMILES LM for embeddings/properties"],
+       ["ChemBERTa", "lighter SMILES model"],
+       ["Uni-Mol", "3D-aware molecular representation model"]],
+      ["PubChem", "ChEMBL", "ZINC20", "RCSB PDB"]),
+    L("ChemBERTa", "Lightweight RoBERTa-on-SMILES for molecular property tasks.",
+      [["ChemBERTa", "lightweight SMILES property model"],
+       ["MoLFormer-XL", "larger scale version"],
+       ["Uni-Mol", "3D-aware molecular model"]],
+      ["PubChem", "ChEMBL", "ZINC20"])),
+  biomedical_literature: B("Is the task extracting entities/relations from papers rather than answering questions?",
+    L("PubMedBERT / BioBERT", "Encoder models for biomedical NER, relation extraction and classification over literature.",
+      [["PubMedBERT", "pretrained from scratch on PubMed for text mining"],
+       ["BioBERT", "BERT fine-tuned on biomedical text"],
+       ["BioLinkBERT", "adds citation-link context for relations"]],
+      ["NCBI PubMed", "NCBI Gene", "UniProt", "NCBI ClinVar"]),
+    L("BioMistral-7B / Meditron", "Biomedical LLMs for QA-style questions over clinical and scientific text.",
+      [["BioMistral-7B", "Mistral continued on PubMed for biomedical QA"],
+       ["Meditron", "Llama-based clinical LLM"],
+       ["General LLM + RAG", "retrieve from PubMed, answer with any LLM"]],
+      ["NCBI PubMed", "NCBI ClinVar", "NCBI Gene"])),
+  }),
+  L("Not a bioinformatics task", "A general model fits better — Llama-3.1 for open weights, or Jev/Kev for decision-type questions.", []),
+  0.25
+);
+
+async function askOne(state, name, q) {
+  const r = await fetch("/api/ask", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      base_url: document.getElementById("baseUrl").value,
+      model: document.getElementById("model").value,
+      api_key: document.getElementById("apiKey").value || null,
+      state, questions: { [name]: q },
+    }),
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error);
+  return data.answers[name];
+}
+
+async function askQuestions(state, questions) {
+  const r = await fetch("/api/ask", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      base_url: document.getElementById("baseUrl").value,
+      model: document.getElementById("model").value,
+      api_key: document.getElementById("apiKey").value || null,
+      state,
+      questions,
+    }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `Kev request failed (${r.status})`);
+  if (data.error) throw new Error(data.error);
+  if (!data.answers) throw new Error("Kev response did not include answers.");
+  return data.answers;
+}
+
+async function loadTools() {
+  const r = await fetch("/tools.json");
+  const tools = await r.json().catch(() => null);
+  if (!r.ok || !Array.isArray(tools)) throw new Error("Could not load the bioinformatics tool catalog.");
+  return tools;
+}
+
+async function walkTree(state, onStep) {
+  let node = KEY_TREE;
+  let step = 1;
+  while (!node.leaf) {
+    const q = node.ask;
+    const a = await askOne(state, "step", q);
+    let answerText;
+    let detail;
+    if (q.type === "noul") {
+      const yes = a.noul >= (node.thresh ?? 0.5);
+      answerText = yes ? "yes" : "no";
+      detail = a.noul.toFixed(3);
+      node = yes ? node.yes : node.no;
+    } else {
+      answerText = a.choice;
+      detail = (a.probabilities[a.choice] ?? 0).toFixed(3);
+      node = node.next[answerText];
+    }
+    onStep?.({ q, answerText, detail, step: step++, node });
+    if (!node) break;
+  }
+  return node;
+}
+
+function renderPipelineStep({ stage, leaf, tools }, index) {
+  const esc = core.esc;
+  const model = leaf?.model;
+  const needsModel = model && model !== "Not a bioinformatics task";
+  const candidates = (leaf?.cands || [])
+    .filter((candidate) => candidate[0] !== model)
+    .map(([name, description]) => `<li><b>${esc(name)}</b>${description ? ` — ${esc(description)}` : ""}</li>`)
+    .join("");
+  const resources = (leaf?.resources || [])
+    .map((resource) => `<span class="badge">${esc(resource)}</span>`)
+    .join("");
+  const toolCards = tools.map(({ tool, p }) => {
+    const url = core.safeUrl(tool.url);
+    const name = url && url !== "#"
+      ? `<a class="mlink" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(tool.name)} ↗</a>`
+      : esc(tool.name);
+    return `<div class="pipeline-tool">
+      <div><b>${name}</b> <span class="badge">${Math.round(p * 100)}% Kev</span></div>
+      <p>${esc(tool.description)}</p>
+      <div class="dim">Install: <code>${esc(tool.install || "No install command listed")}</code></div>
+    </div>`;
+  }).join("");
+  const modelHtml = needsModel
+    ? `<div><b>Recommended model: ${esc(model)}</b></div><p>${esc(leaf.blurb || "")}</p>
+       ${candidates ? `<div class="meta"><b>Alternatives</b><ul>${candidates}</ul></div>` : ""}`
+    : `<div><b>No ML model needed for this step</b></div>`;
+  return `<article class="pipeline-step">
+    <h3>Step ${index + 1} · ${esc(stage.category)} · Kev ${Math.round(stage.p * 100)}%</h3>
+    <div>${modelHtml}</div>
+    <div class="meta" style="margin-top:8px"><b>Top catalog tools</b></div>
+    <div class="pipeline-tools">${toolCards || `<div class="dim">Kev returned no tool probabilities for this step.</div>`}</div>
+    ${resources ? `<div class="meta" style="margin-top:8px"><b>Resources</b> ${resources}</div>` : ""}
+  </article>`;
+}
+
+async function runPipeline(state, out) {
+  out.innerHTML = '<div id="pipelineProgress" class="dim">Finding steps…</div>';
+  const [stageAnswers, tools] = await Promise.all([
+    askQuestions(state, pipeline.stageQuestions(core.STAGE_ORDER)),
+    loadTools(),
+  ]);
+  const stages = pipeline.pickStages(stageAnswers, core.STAGE_ORDER);
+  if (!stages.length) throw new Error("Kev did not identify any pipeline steps.");
+
+  out.innerHTML = `<div id="pipelineProgress" class="dim">Step 1/${stages.length}…</div><div id="pipelineResults"></div>`;
+  let completed = 0;
+  const results = await Promise.all(stages.map(async (stage) => {
+    const stepState = pipeline.stepState(state, stage.category);
+    const [toolAnswers, leaf] = await Promise.all([
+      askQuestions(stepState, pipeline.toolQuestion(stage.category, tools)),
+      walkTree(stepState),
+    ]);
+    if (!leaf) throw new Error(`The model decision tree returned no leaf for ${stage.category}.`);
+    completed += 1;
+    const progress = document.getElementById("pipelineProgress");
+    if (progress) {
+      progress.textContent = completed < stages.length
+        ? `Step ${completed + 1}/${stages.length}…`
+        : `Rendering ${stages.length} steps…`;
+    }
+    return {
+      stage,
+      leaf,
+      tools: pipeline.topTools(toolAnswers[core.slug(stage.category)], tools, 3),
+    };
+  }));
+  const resultsEl = document.getElementById("pipelineResults");
+  if (resultsEl) resultsEl.innerHTML = results.map(renderPipelineStep).join("");
+  const progress = document.getElementById("pipelineProgress");
+  if (progress) progress.textContent = `${stages.length} steps complete`;
+}
+
+document.getElementById("runKey").onclick = async () => {
+  const taskOnly = document.getElementById("taskText").value.trim();
+  const docText = document.getElementById("doc").value.trim();
+  const state = [docText, taskOnly].filter(Boolean).join("\n\nTask: ");
+  const out = document.getElementById("keyPath");
+  const btn = document.getElementById("runKey");
+  if (!state) { out.innerHTML = '<span class="dim">Describe your task (or load a document above) first.</span>'; return; }
+  btn.disabled = true;
+  out.innerHTML = '<span class="dim">running (first call to 27B may take ~3 min if the GPU is cold)…</span>';
+  try {
+    if (document.getElementById("modePipeline").getAttribute("aria-pressed") === "true") {
+      await runPipeline(state, out);
+      return;
+    }
+    out.innerHTML = "";
+    const node = await walkTree(state, ({ q, answerText, detail, step, node: nextNode }) => {
+      out.innerHTML += `<div class="qa"><span class="dim">step ${step}:</span> ` +
+        `${core.esc(q.instructions)} → <b>${core.esc(answerText)}</b> <span class="dim">(${core.esc(detail)})</span></div>`;
+      if (!nextNode) out.innerHTML += `<div class="err">key fell off the path — no branch for "${core.esc(answerText)}"</div>`;
+    });
+    if (!node) return;
+    let ranked = "";
+    let headlineModel = node.model;
+    let headlineBlurb = node.blurb;
+    const seen = new Set();
+    const allCands = [
+      ...(node.cands || []),
+      ...((node.resources || []).map(r => [r, RESOURCE_DESC[r] || "biological database / search resource"])),
+    ].filter(([name]) => (seen.has(name) ? false : (seen.add(name), true)));
+    if (allCands.length) {
+      const qs = {};
+      allCands.forEach(([name, desc], i) => {
+        qs["cand" + i] = { type: "score",
+          instructions: `How useful is ${name} for the user's task? (${desc})`,
+          criteria: ["not needed", "helpful reference", "good fit", "essential"] };
+      });
+      const r = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          base_url: document.getElementById("baseUrl").value,
+          model: document.getElementById("model").value,
+          api_key: document.getElementById("apiKey").value || null,
+          state, questions: qs,
+        }),
+      });
+      const data = await r.json();
+      if (!data.error) {
+        const scored = allCands.map(([name, desc], i) => {
+          const a = data.answers["cand" + i] || {};
+          return { name, desc, score: a.score ?? 0 };
+        }).sort((x, y) => y.score - x.score);
+        const top = Math.max(...scored.map(s => s.score), 0.001);
+        const [best, ...rest] = scored;
+        const leafEntry = scored.find(s => s.name === node.model);
+        if (best && (!leafEntry || best.score > leafEntry.score + 0.25)) {
+          headlineModel = best.name;
+          headlineBlurb = `${best.desc} (promoted over ${node.model} because Kev scored it higher for your task).`;
+        }
+        const backups = rest.slice(0, 4).map(s => `${linkModel(s.name)} (${s.score.toFixed(2)}/3)`).join(", ");
+        ranked = `<div class="meta" style="margin-top:6px">` +
+          `best scored → <b>${linkModel(best.name)}</b> (${best.score.toFixed(2)}/3)` +
+          (backups ? ` · backups → ${backups}` : "") + `</div>` +
+          scored.map(s => bar(s.name, s.score / 3, s.score === top ? "top" : "")).join("");
+      }
+    }
+    const resLinks = (node.resources && node.resources.length)
+      ? `<div class="meta" style="margin-top:8px">databases &amp; search tools → ` +
+        node.resources.map(linkModel).join(" · ") + `</div>` : "";
+    out.innerHTML += `<div class="qa"><div class="instr">Recommendation: ` +
+      `<b>${linkModel(headlineModel)}</b></div><div class="dim">${headlineBlurb}</div>${ranked}${resLinks}` +
+      `<div id="liveHits" class="meta" style="margin-top:10px">searching live NCBI / UniProt / PDB / AlphaFold DB records…</div></div>`;
+
+    // Query live NCBI / UniProt / PDB / AlphaFold DB and have Kev rank the real hits
+    const sr = await fetch("/api/search_resources", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: taskOnly || state }),
+    }).then(r => r.json()).catch(() => ({ items: [] }));
+    const hitsEl = document.getElementById("liveHits");
+    if (sr.items && sr.items.length) {
+      const hqs = {};
+      sr.items.forEach((it, i) => {
+        hqs["h" + i] = { type: "score",
+          instructions: `How relevant is this database record to the user's task: "${it.summary}"?`,
+          criteria: ["unrelated", "loosely related", "relevant", "direct match"] };
+      });
+      const hr = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          base_url: document.getElementById("baseUrl").value,
+          model: document.getElementById("model").value,
+          api_key: document.getElementById("apiKey").value || null,
+          state, questions: hqs,
+        }),
+      }).then(r => r.json()).catch(() => ({}));
+      const rankedHits = sr.items.map((it, i) => ({
+        ...it,
+        score: (hr.answers && hr.answers["h" + i] && hr.answers["h" + i].score) ?? 0,
+      })).sort((a, b) => b.score - a.score);
+      const relevant = rankedHits.filter(it => it.score >= 0.75);
+      const shown = relevant.length ? relevant : rankedHits.slice(0, 3);
+      hitsEl.innerHTML = `<b>live records from NCBI / UniProt / PDB / AlphaFold DB</b> (query: <code>${sr.query}</code>, Kev-scored):` +
+        shown.map(it => {
+          const af = it.af_url ? ` · <a class="mlink" href="${it.af_url}" target="_blank" rel="noopener">AlphaFold 3D ↗</a>` : "";
+          const cls = it.score >= 1.5 ? "yes" : "no";
+          return `<div style="margin-top:4px"><span class="badge ${cls}">${it.score.toFixed(2)}/3</span> ` +
+            `<b>[${it.source}]</b> <a class="mlink" href="${it.url}" target="_blank" rel="noopener">${it.title} ↗</a>${af}</div>`;
+        }).join("");
+    } else if (hitsEl) {
+      hitsEl.textContent = "";
+    }
+  } catch (e) {
+    out.innerHTML += `<div class="err">${core.esc(e?.message || e)}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+function setFinderMode(mode) {
+  const pipelineMode = mode === "pipeline";
+  document.getElementById("modeSingle").setAttribute("aria-pressed", String(!pipelineMode));
+  document.getElementById("modePipeline").setAttribute("aria-pressed", String(pipelineMode));
+  document.getElementById("runKey").textContent = pipelineMode ? "Plan pipeline" : "Identify";
+}
+document.getElementById("modeSingle").onclick = () => setFinderMode("single");
+document.getElementById("modePipeline").onclick = () => setFinderMode("pipeline");
+document.getElementById("pipelineExample").onclick = () => {
+  document.getElementById("taskText").value = "Assemble a bacterial genome from nanopore reads, find its biosynthetic gene clusters, then dock the predicted products against a target protein";
+  setFinderMode("pipeline");
+};
+</script>
+</body>
+</html>

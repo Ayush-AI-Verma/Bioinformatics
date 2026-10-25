@@ -40,6 +40,19 @@ Set `KEV_ENDPOINT` in the environment or `.env` to your Kev-9B endpoint to use t
 
 Run `npm test` with Node 22 or newer; no dependencies are required. It runs core unit tests, mock-server client tests, and catalog validation. GitHub Actions runs the suite on every push and pull request via [`.github/workflows/test.yml`](.github/workflows/test.yml).
 
+## Playground (models + tools per step)
+
+The Playground combines its existing model decision tree with Bioinformatics catalog tools in a multi-step pipeline.
+
+```bash
+python3 -m venv playground/.venv
+source playground/.venv/bin/activate
+pip install -r playground/requirements.txt
+cd playground && python3 -m uvicorn app:app --host 127.0.0.1 --port 8000
+```
+
+Set `KEV_API_KEY=…` in `playground/.env`; the root `.env` ignore rule keeps it out of Git. The key stays server-side and is not served to the browser.
+
 ## Example
 
 See the [kitchen-safety example](examples/kitchen-safety/).
