@@ -11,6 +11,7 @@ import {
   STAGE_ORDER,
   addHistory,
   decodeShare,
+  dropUnrequestedStages,
   encodeShare,
   esc,
   facetValues,
@@ -147,6 +148,47 @@ test("pickPipelineSteps applies threshold, max cutoff, fallback, and stage order
     ["read-alignment", 0.7],
     ["other-stage", 0.8],
   ]);
+});
+
+test("dropUnrequestedStages filters unmentioned opt-in stages without mutating input", () => {
+  const nouls = {
+    "file-formats-utilities": 0.9,
+    "workflow-managers": 0.8,
+    "variant-calling": 0.7,
+  };
+  const original = { ...nouls };
+
+  assert.deepEqual(
+    dropUnrequestedStages(nouls, STAGE_ORDER, "Call germline SNPs from WGS reads"),
+    { "variant-calling": 0.7 },
+  );
+  assert.deepEqual(nouls, original);
+});
+
+test("dropUnrequestedStages keeps opt-in stages mentioned in the task", () => {
+  const nouls = {
+    "file-formats-utilities": 0.9,
+    "workflow-managers": 0.8,
+    "variant-calling": 0.7,
+  };
+
+  assert.deepEqual(
+    dropUnrequestedStages(nouls, STAGE_ORDER, "convert BAM to CRAM"),
+    { "file-formats-utilities": 0.9, "variant-calling": 0.7 },
+  );
+  assert.deepEqual(
+    dropUnrequestedStages(nouls, STAGE_ORDER, "run it in Nextflow on our SLURM cluster"),
+    { "workflow-managers": 0.8, "variant-calling": 0.7 },
+  );
+});
+
+test("dropUnrequestedStages returns a shallow copy unchanged for non-string tasks", () => {
+  const nouls = { "file-formats-utilities": 0.9, "variant-calling": 0.7 };
+  const copy = dropUnrequestedStages(nouls, STAGE_ORDER, null);
+
+  assert.deepEqual(copy, nouls);
+  assert.notStrictEqual(copy, nouls);
+  assert.deepEqual(nouls, { "file-formats-utilities": 0.9, "variant-calling": 0.7 });
 });
 
 test("scoreTools multiplies probabilities, ranks within categories, and skips missing entries", () => {

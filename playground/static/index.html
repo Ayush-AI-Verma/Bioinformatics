@@ -834,11 +834,11 @@ async function walkTree(state, onStep) {
   return node;
 }
 
-function renderPipelineStep({ stage, leaf, tools }, index) {
+function renderPipelineStep({ stage, leaf, tools, modelPicks }, index) {
   const esc = core.esc;
   const model = leaf?.model;
   const noSeparateModel = pipeline.NO_MODEL_CATEGORIES.has(stage.category);
-  const needsModel = !noSeparateModel && model && model !== "Not a bioinformatics task";
+  const needsModel = modelPicks !== false && !noSeparateModel && model && model !== "Not a bioinformatics task";
   const candidates = (leaf?.cands || [])
     .filter((candidate) => candidate[0] !== model)
     .map(([name, description]) => `<li><b>${esc(name)}</b>${description ? ` — ${esc(description)}` : ""}</li>`)
@@ -857,8 +857,10 @@ function renderPipelineStep({ stage, leaf, tools }, index) {
       <div class="dim">Install: <code>${esc(tool.install || "No install command listed")}</code></div>
     </div>`;
   }).join("");
-  const modelHtml = noSeparateModel
-    ? `<div><b>No separate ML model — use the tools below</b></div>`
+  const modelHtml = modelPicks === false
+    ? `<div><b>Model picks are off for local Kev — use the tools below</b> <span class="dim">(switch to kev-27b for model picks)</span></div>`
+    : noSeparateModel
+      ? `<div><b>No separate ML model — use the tools below</b></div>`
     : needsModel
       ? `<div><b>Recommended model: ${esc(model)}</b></div><p>${esc(leaf.blurb || "")}</p>
          ${candidates ? `<div class="meta"><b>Alternatives</b><ul>${candidates}</ul></div>` : ""}`
@@ -873,26 +875,29 @@ function renderPipelineStep({ stage, leaf, tools }, index) {
 }
 
 async function runPipeline(state, out) {
+  const model = document.getElementById("model").value;
+  const baseUrl = document.getElementById("baseUrl").value;
+  const localKev = pipeline.isLocalKev(model, baseUrl);
   out.innerHTML = '<div id="pipelineProgress" class="dim">Finding steps…</div>';
   const [stageAnswers, tools] = await Promise.all([
     askQuestions(state, pipeline.stageQuestions(core.STAGE_ORDER)),
     loadTools(),
   ]);
-  const stages = pipeline.pickStages(stageAnswers, core.STAGE_ORDER);
+  const stages = pipeline.pickStages(stageAnswers, core.STAGE_ORDER, state);
   if (!stages.length) throw new Error("Kev did not identify any pipeline steps.");
 
   out.innerHTML = `<div id="pipelineProgress" class="dim">Step 1/${stages.length}…</div><div id="pipelineResults"></div>`;
   let completed = 0;
   const results = await Promise.all(stages.map(async (stage) => {
     const toolState = pipeline.stepState(state, stage.category);
-    const modelWalk = pipeline.NO_MODEL_CATEGORIES.has(stage.category)
+    const modelWalk = localKev || pipeline.NO_MODEL_CATEGORIES.has(stage.category)
       ? Promise.resolve(null)
       : walkTree(pipeline.modelState(stage.category));
     const [toolAnswers, leaf] = await Promise.all([
       askQuestions(toolState, pipeline.toolQuestion(stage.category, tools)),
       modelWalk,
     ]);
-    if (!leaf && !pipeline.NO_MODEL_CATEGORIES.has(stage.category)) {
+    if (!leaf && !localKev && !pipeline.NO_MODEL_CATEGORIES.has(stage.category)) {
       throw new Error(`The model decision tree returned no leaf for ${stage.category}.`);
     }
     completed += 1;
@@ -905,6 +910,7 @@ async function runPipeline(state, out) {
     return {
       stage,
       leaf,
+      modelPicks: !localKev,
       tools: pipeline.topTools(toolAnswers[core.slug(stage.category)], tools, 3),
     };
   }));

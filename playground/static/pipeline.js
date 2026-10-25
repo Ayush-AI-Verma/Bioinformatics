@@ -9,6 +9,11 @@ export const NO_MODEL_CATEGORIES = new Set([
   "Workflow managers",
 ]);
 
+export function isLocalKev(model, baseUrl) {
+  return model === "kev-latest"
+    || (typeof baseUrl === "string" && /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/|$)/i.test(baseUrl));
+}
+
 export function stageQuestions(categories = core.STAGE_ORDER) {
   return Object.fromEntries(categories.map((category) => {
     const hint = core.CATEGORY_HINTS[category];
@@ -22,13 +27,13 @@ export function stageQuestions(categories = core.STAGE_ORDER) {
   }));
 }
 
-export function pickStages(answers, categories = core.STAGE_ORDER) {
+export function pickStages(answers, categories = core.STAGE_ORDER, task) {
   const nouls = Object.fromEntries(categories.map((category) => {
     const key = core.slug(category);
     return [key, answers?.[key]?.noul];
   }));
   const namesBySlug = new Map(categories.map((category) => [core.slug(category), category]));
-  return core.pickPipelineSteps(nouls, categories)
+  return core.pickPipelineSteps(core.dropUnrequestedStages(nouls, categories, task), categories)
     .map(([categorySlug, p]) => ({ category: namesBySlug.get(categorySlug), p }))
     .filter((stage) => stage.category);
 }

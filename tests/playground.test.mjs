@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import * as core from "../site/core.js";
 import {
+  isLocalKev,
   modelState,
   NO_MODEL_CATEGORIES,
   pickStages,
@@ -54,6 +55,33 @@ test("pickStages caps results at six and preserves STAGE_ORDER", () => {
   assert.deepEqual(pickStages(answers), expected);
 });
 
+test("pickStages drops an unmentioned opt-in stage before applying the six-stage cap", () => {
+  const answers = Object.fromEntries(core.STAGE_ORDER.map((category) => [core.slug(category), { noul: 0.1 }]));
+  const selected = [
+    ["File formats & utilities", 0.99],
+    ["Workflow managers", 0.98],
+    ["Sequence QC & trimming", 0.97],
+    ["Long-read sequencing", 0.96],
+    ["Read alignment", 0.95],
+    ["Genome assembly", 0.94],
+    ["Variant calling", 0.93],
+  ];
+  for (const [category, noul] of selected) answers[core.slug(category)] = { noul };
+
+  assert.deepEqual(
+    pickStages(answers, core.STAGE_ORDER, "run it in Nextflow on our SLURM cluster")
+      .map(({ category }) => category),
+    [
+      "Sequence QC & trimming",
+      "Long-read sequencing",
+      "Read alignment",
+      "Genome assembly",
+      "Variant calling",
+      "Workflow managers",
+    ],
+  );
+});
+
 test("toolQuestion lists only the selected category's tools with IO criteria", () => {
   const category = "Natural products & metabolomics";
   const question = toolQuestion(category, tools)[core.slug(category)];
@@ -101,4 +129,11 @@ test("NO_MODEL_CATEGORIES contains only pipeline stages", () => {
   for (const category of NO_MODEL_CATEGORIES) {
     assert.ok(core.STAGE_ORDER.includes(category), `${category} is not a pipeline stage`);
   }
+});
+
+test("isLocalKev recognizes local model names and endpoints", () => {
+  assert.equal(isLocalKev("kev-latest", "https://example.modal.run"), true);
+  assert.equal(isLocalKev("kev-27b", "http://127.0.0.1:8009"), true);
+  assert.equal(isLocalKev("kev-27b", "http://localhost:8009/"), true);
+  assert.equal(isLocalKev("kev-27b", "https://ayush-ai-verma--kev27b-api.modal.run"), false);
 });

@@ -162,7 +162,7 @@ async function runPipeline(task, signal) {
   const qs = Object.fromEntries(CATEGORIES.map((c) => [core.slug(c), { type: "noul", instructions: `Does this task or pipeline include a step that needs ${c} tools${core.CATEGORY_HINTS[c] ? ` (${core.CATEGORY_HINTS[c]})` : ""}?` }]));
   const a1 = await kev(task, qs, signal);
   const nouls = Object.fromEntries(Object.entries(a1).map(([id, a]) => [id, a.noul]));
-  const steps = core.pickPipelineSteps(nouls, CATEGORIES);
+  const steps = core.pickPipelineSteps(core.dropUnrequestedStages(nouls, CATEGORIES, task), CATEGORIES);
   $("categories").innerHTML = steps.map(([id, p], i) => `<span class="chip">${i + 1}. ${esc(CAT_BY_SLUG[id] || id)} <b>${pct(p)}</b></span>`).join("");
   setWaiting(`Step 2/2: Kev is picking tools for ${steps.length} pipeline step${steps.length === 1 ? "" : "s"}…`);
   const a2 = await kev(task, catQuestion(steps.map(([id]) => id)), signal);

@@ -27,6 +27,11 @@ export const STAGE_ORDER = [
   "Workflow managers",
 ];
 
+export const OPT_IN_STAGES = {
+  "File formats & utilities": /\b(convert|conversion|file formats?|sort|index(ing)?|merge|subsampl\w*|downsampl\w*|compress\w*|liftover|intersect\w*|samtools|bcftools|bedtools|seqkit|htslib|picard)\b/i,
+  "Workflow managers": /\b(workflow (manager|engine|language)s?|nextflow|snakemake|cromwell|wdl|cwl|galaxy|nf-core|reproducib\w*|automat\w*|hpc|slurm|cluster jobs?|scal(e|able|ing))\b/i,
+};
+
 export const CATEGORY_HINTS = {
   "Sequence QC & trimming": "read quality reports, adapter and quality trimming, and filtering of raw FASTQ reads",
   "Long-read sequencing": "Oxford Nanopore/PacBio basecalling, long-read processing, long-read mapping and polishing",
@@ -171,6 +176,16 @@ export function pickPipelineSteps(
       return a.categoryIndex - b.categoryIndex || a.index - b.index;
     })
     .map(({ id, probability }) => [id, probability]);
+}
+
+export function dropUnrequestedStages(nouls, categories, task) {
+  const filtered = { ...(nouls ?? {}) };
+  if (typeof task !== "string") return filtered;
+  for (const category of categories ?? []) {
+    const matcher = OPT_IN_STAGES[category];
+    if (matcher && !matcher.test(task)) delete filtered[slug(category)];
+  }
+  return filtered;
 }
 
 export function scoreTools(picked, answers, toolsById) {
