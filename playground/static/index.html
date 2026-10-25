@@ -837,7 +837,8 @@ async function walkTree(state, onStep) {
 function renderPipelineStep({ stage, leaf, tools }, index) {
   const esc = core.esc;
   const model = leaf?.model;
-  const needsModel = model && model !== "Not a bioinformatics task";
+  const noSeparateModel = pipeline.NO_MODEL_CATEGORIES.has(stage.category);
+  const needsModel = !noSeparateModel && model && model !== "Not a bioinformatics task";
   const candidates = (leaf?.cands || [])
     .filter((candidate) => candidate[0] !== model)
     .map(([name, description]) => `<li><b>${esc(name)}</b>${description ? ` — ${esc(description)}` : ""}</li>`)
@@ -856,10 +857,12 @@ function renderPipelineStep({ stage, leaf, tools }, index) {
       <div class="dim">Install: <code>${esc(tool.install || "No install command listed")}</code></div>
     </div>`;
   }).join("");
-  const modelHtml = needsModel
-    ? `<div><b>Recommended model: ${esc(model)}</b></div><p>${esc(leaf.blurb || "")}</p>
-       ${candidates ? `<div class="meta"><b>Alternatives</b><ul>${candidates}</ul></div>` : ""}`
-    : `<div><b>No ML model needed for this step</b></div>`;
+  const modelHtml = noSeparateModel
+    ? `<div><b>No separate ML model — use the tools below</b></div>`
+    : needsModel
+      ? `<div><b>Recommended model: ${esc(model)}</b></div><p>${esc(leaf.blurb || "")}</p>
+         ${candidates ? `<div class="meta"><b>Alternatives</b><ul>${candidates}</ul></div>` : ""}`
+      : `<div><b>No ML model needed for this step</b></div>`;
   return `<article class="pipeline-step">
     <h3>Step ${index + 1} · ${esc(stage.category)} · Kev ${Math.round(stage.p * 100)}%</h3>
     <div>${modelHtml}</div>
@@ -881,12 +884,17 @@ async function runPipeline(state, out) {
   out.innerHTML = `<div id="pipelineProgress" class="dim">Step 1/${stages.length}…</div><div id="pipelineResults"></div>`;
   let completed = 0;
   const results = await Promise.all(stages.map(async (stage) => {
-    const stepState = pipeline.stepState(state, stage.category);
+    const toolState = pipeline.stepState(state, stage.category);
+    const modelWalk = pipeline.NO_MODEL_CATEGORIES.has(stage.category)
+      ? Promise.resolve(null)
+      : walkTree(pipeline.modelState(stage.category));
     const [toolAnswers, leaf] = await Promise.all([
-      askQuestions(stepState, pipeline.toolQuestion(stage.category, tools)),
-      walkTree(stepState),
+      askQuestions(toolState, pipeline.toolQuestion(stage.category, tools)),
+      modelWalk,
     ]);
-    if (!leaf) throw new Error(`The model decision tree returned no leaf for ${stage.category}.`);
+    if (!leaf && !pipeline.NO_MODEL_CATEGORIES.has(stage.category)) {
+      throw new Error(`The model decision tree returned no leaf for ${stage.category}.`);
+    }
     completed += 1;
     const progress = document.getElementById("pipelineProgress");
     if (progress) {

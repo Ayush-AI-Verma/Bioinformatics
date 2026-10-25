@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import * as core from "../site/core.js";
 import {
+  modelState,
+  NO_MODEL_CATEGORIES,
   pickStages,
   stageQuestions,
   stepState,
@@ -82,4 +84,21 @@ test("stepState includes the task, category, and exact category hint", () => {
     stepState(task, category),
     `${task}\n\nCurrent pipeline step: ${category} — ${core.CATEGORY_HINTS[category]}`,
   );
+});
+
+test("modelState isolates the category and its hint from the overall task", () => {
+  const category = "Genome assembly";
+  const task = "Assemble a bacterial genome, find BGCs, then dock products";
+  const state = modelState(category);
+
+  assert.equal(state, `Pipeline step: ${category} — ${core.CATEGORY_HINTS[category]}.`);
+  assert.ok(state.includes(category));
+  assert.ok(state.includes(core.CATEGORY_HINTS[category]));
+  assert.equal(state.includes(task), false);
+});
+
+test("NO_MODEL_CATEGORIES contains only pipeline stages", () => {
+  for (const category of NO_MODEL_CATEGORIES) {
+    assert.ok(core.STAGE_ORDER.includes(category), `${category} is not a pipeline stage`);
+  }
 });

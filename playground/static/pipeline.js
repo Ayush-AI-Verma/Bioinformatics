@@ -1,5 +1,14 @@
 import * as core from "../../site/core.js";
 
+export const NO_MODEL_CATEGORIES = new Set([
+  "Sequence QC & trimming",
+  "Long-read sequencing",
+  "Read alignment",
+  "File formats & utilities",
+  "Visualization & genome browsers",
+  "Workflow managers",
+]);
+
 export function stageQuestions(categories = core.STAGE_ORDER) {
   return Object.fromEntries(categories.map((category) => {
     const hint = core.CATEGORY_HINTS[category];
@@ -59,4 +68,8 @@ export function topTools(answer, tools, n = 3) {
 
 export function stepState(task, category) {
   return `${task}\n\nCurrent pipeline step: ${category} — ${core.CATEGORY_HINTS[category]}`;
+}
+
+export function modelState(category) {
+  return `Pipeline step: ${category} — ${core.CATEGORY_HINTS[category]}.`;
 }
